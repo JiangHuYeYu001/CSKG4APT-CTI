@@ -1,0 +1,242 @@
+{
+  "IE": {
+    "extraction_result": {
+      "entities": [
+        {
+          "id": "APT28",
+          "type": "Attacker",
+          "derivation_source": "APT28, also known as Fancy Bear, is a Russian-based threat actor that has been active since at least 2007.",
+          "confidence": 1.0,
+          "attributes": null
+        },
+        {
+          "id": "Fancy Bear",
+          "type": "Attacker",
+          "derivation_source": "APT28, also known as Fancy Bear, is a Russian-based threat actor that has been active since at least 2007.",
+          "confidence": 1.0,
+          "attributes": null
+        },
+        {
+          "id": "Zebrocy",
+          "type": "Malware",
+          "derivation_source": "The group has been using the Zebrocy trojan, which is written in Delphi, since 2015.",
+          "confidence": 1.0,
+          "attributes": null
+        },
+        {
+          "id": "CVE-2017-0143",
+          "type": "Vulnerability",
+          "derivation_source": "Zebrocy exploits CVE-2017-0143, a vulnerability in the Windows SMB protocol, to gain initial access.",
+          "confidence": 1.0,
+          "attributes": null
+        },
+        {
+          "id": "Windows SMB",
+          "type": "Assets",
+          "derivation_source": "CVE-2017-0143, a vulnerability in the Windows SMB protocol",
+          "confidence": 1.0,
+          "attributes": null
+        },
+        {
+          "id": "Government agencies",
+          "type": "Target",
+          "derivation_source": "APT28 typically targets government agencies and military organizations in Eastern Europe.",
+          "confidence": 1.0,
+          "attributes": null
+        },
+        {
+          "id": "Military organizations",
+          "type": "Target",
+          "derivation_source": "APT28 typically targets government agencies and military organizations in Eastern Europe.",
+          "confidence": 1.0,
+          "attributes": null
+        },
+        {
+          "id": "192.168.100.50",
+          "type": "Infrastructure",
+          "derivation_source": "The group's infrastructure includes C2 servers at 192.168.100.50 and malicious-command.example.com.",
+          "confidence": 1.0,
+          "attributes": null
+        },
+        {
+          "id": "malicious-command.example.com",
+          "type": "Infrastructure",
+          "derivation_source": "The group's infrastructure includes C2 servers at 192.168.100.50 and malicious-command.example.com.",
+          "confidence": 1.0,
+          "attributes": null
+        }
+      ],
+      "relations": [
+        {
+          "source_entity_id": "APT28",
+          "target_entity_id": "Zebrocy",
+          "relation_type": "have",
+          "derivation_source": "The group has been using the Zebrocy trojan, which is written in Delphi, since 2015.",
+          "confidence": 1.0,
+          "timestamp": null
+        },
+        {
+          "source_entity_id": "Zebrocy",
+          "target_entity_id": "CVE-2017-0143",
+          "relation_type": "exploit",
+          "derivation_source": "Zebrocy exploits CVE-2017-0143, a vulnerability in the Windows SMB protocol, to gain initial access.",
+          "confidence": 1.0,
+          "timestamp": null
+        },
+        {
+          "source_entity_id": "CVE-2017-0143",
+          "target_entity_id": "Windows SMB",
+          "relation_type": "exist",
+          "derivation_source": "Zebrocy exploits CVE-2017-0143, a vulnerability in the Windows SMB protocol, to gain initial access.",
+          "confidence": 1.0,
+          "timestamp": null
+        },
+        {
+          "source_entity_id": "APT28",
+          "target_entity_id": "192.168.100.50",
+          "relation_type": "medium",
+          "derivation_source": "The group's infrastructure includes C2 servers at 192.168.100.50 and malicious-command.example.com.",
+          "confidence": 1.0,
+          "timestamp": null
+        },
+        {
+          "source_entity_id": "APT28",
+          "target_entity_id": "malicious-command.example.com",
+          "relation_type": "medium",
+          "derivation_source": "The group's infrastructure includes C2 servers at 192.168.100.50 and malicious-command.example.com.",
+          "confidence": 1.0,
+          "timestamp": null
+        }
+      ],
+      "metadata": {
+        "ontology": "CSKG4APT",
+        "version": "1.0",
+        "chunk_index": 0,
+        "generation_time": 16.339888334274292,
+        "model": "claude-sonnet-4-5-20250929",
+        "usage": {
+          "model": "claude-sonnet-4-5-20250929",
+          "input": {
+            "tokens": 2411,
+            "cost": 0
+          },
+          "output": {
+            "tokens": 1154,
+            "cost": 0
+          },
+          "total": {
+            "tokens": 3565,
+            "cost": 0
+          }
+        }
+      }
+    },
+    "statistics": {
+      "total_entities": 9,
+      "total_relations": 5,
+      "entity_type_distribution": {
+        "Attacker": 2,
+        "Malware": 1,
+        "Vulnerability": 1,
+        "Assets": 1,
+        "Target": 2,
+        "Infrastructure": 2
+      },
+      "relation_type_distribution": {
+        "have": 1,
+        "exploit": 1,
+        "exist": 1,
+        "medium": 2
+      },
+      "metadata": {
+        "ontology": "CSKG4APT",
+        "version": "1.0",
+        "chunk_index": 0,
+        "generation_time": 16.339888334274292,
+        "model": "claude-sonnet-4-5-20250929",
+        "usage": {
+          "model": "claude-sonnet-4-5-20250929",
+          "input": {
+            "tokens": 2411,
+            "cost": 0
+          },
+          "output": {
+            "tokens": 1154,
+            "cost": 0
+          },
+          "total": {
+            "tokens": 3565,
+            "cost": 0
+          }
+        }
+      }
+    }
+  },
+  "ET": {
+    "typed_triplets": [
+      {
+        "subject": {
+          "text": "APT28",
+          "class": "Attacker"
+        },
+        "relation": "have",
+        "object": {
+          "text": "Zebrocy",
+          "class": "Malware"
+        },
+        "derivation_source": "The group has been using the Zebrocy trojan, which is written in Delphi, since 2015."
+      },
+      {
+        "subject": {
+          "text": "Zebrocy",
+          "class": "Malware"
+        },
+        "relation": "exploit",
+        "object": {
+          "text": "CVE-2017-0143",
+          "class": "Vulnerability"
+        },
+        "derivation_source": "Zebrocy exploits CVE-2017-0143, a vulnerability in the Windows SMB protocol, to gain initial access."
+      },
+      {
+        "subject": {
+          "text": "CVE-2017-0143",
+          "class": "Vulnerability"
+        },
+        "relation": "exist",
+        "object": {
+          "text": "Windows SMB",
+          "class": "Assets"
+        },
+        "derivation_source": "Zebrocy exploits CVE-2017-0143, a vulnerability in the Windows SMB protocol, to gain initial access."
+      },
+      {
+        "subject": {
+          "text": "APT28",
+          "class": "Attacker"
+        },
+        "relation": "medium",
+        "object": {
+          "text": "192.168.100.50",
+          "class": "Infrastructure"
+        },
+        "derivation_source": "The group's infrastructure includes C2 servers at 192.168.100.50 and malicious-command.example.com."
+      },
+      {
+        "subject": {
+          "text": "APT28",
+          "class": "Attacker"
+        },
+        "relation": "medium",
+        "object": {
+          "text": "malicious-command.example.com",
+          "class": "Infrastructure"
+        },
+        "derivation_source": "The group's infrastructure includes C2 servers at 192.168.100.50 and malicious-command.example.com."
+      }
+    ],
+    "ontology": "CSKG4APT",
+    "entity_types": 12,
+    "relation_types": 7
+  }
+}

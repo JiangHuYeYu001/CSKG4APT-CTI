@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "<string>", line 16, in <module>
+    print(''.join(full_text))
+    ~~~~~^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'gbk' codec can't encode character '\ufb02' in position 288: illegal multibyte sequence
