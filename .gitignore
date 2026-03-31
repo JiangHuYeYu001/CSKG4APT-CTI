@@ -16,6 +16,8 @@ venv/
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # OS
 Thumbs.db
@@ -37,3 +39,9 @@ uv.lock
 
 # Gradio
 .gradio/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Neo4j
+neo4j_data/
