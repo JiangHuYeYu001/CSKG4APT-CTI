@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-CTINexus 前端改进完整演示
+CSKG4APT 前端改进完整演示
 包含：多标签页UI + 完善的错误处理
 """
 
@@ -15,11 +15,11 @@ if sys.platform == "win32":
     sys.stderr = codecs.getwriter("utf-8")(sys.stderr.detach())
 
 # 添加项目路径
-project_root = Path(__file__).parent / "ctinexus"
+project_root = Path(__file__).parent / "cskg4apt"
 sys.path.insert(0, str(project_root.parent))
 
 print("=" * 80)
-print("     CTINexus × CSKG4APT - 前端改进完整演示")
+print("     CSKG4APT × CSKG4APT - 前端改进完整演示")
 print("=" * 80)
 print("\n🎨 UI改进亮点：")
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
@@ -94,7 +94,7 @@ print("=" * 80)
 print()
 
 # 启动应用
-from ctinexus.app import main
+from cskg4apt.app import main
 
 if __name__ == "__main__":
     main()

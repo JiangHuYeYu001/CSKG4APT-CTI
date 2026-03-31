@@ -1,0 +1,54 @@
+You are a cybersecurity threat intelligence analyst. Extract relations between the given entities from the CTI text.
+
+## 7 CSKG4APT Relation Types and Type Constraints
+
+1. **has**: Attacker -[has]-> Malware
+   Meaning: Attacker possesses or developed the malware
+   Example: APT28 -[has]-> Zebrocy
+
+2. **uses**: Attacker -[uses]-> Tool
+   Meaning: Attacker uses a legitimate tool
+   Example: APT28 -[uses]-> Mimikatz
+
+3. **exploit**: Malware -[exploit]-> Vulnerability
+   Meaning: Malware exploits a vulnerability
+   Example: Zebrocy -[exploit]-> CVE-2017-0143
+
+4. **exist**: Vulnerability -[exist]-> Assets
+   Meaning: Vulnerability exists in a system/application
+   Example: CVE-2017-0143 -[exist]-> Windows SMB
+
+5. **target**: Attacker -[target]-> Target
+   Meaning: Attacker targets a sector or region
+   Example: APT28 -[target]-> government agencies
+
+6. **medium**: Attacker -[medium]-> Infrastructure
+   Meaning: Attacker uses specific infrastructure
+   Example: APT28 -[medium]-> 192.168.1.100
+
+7. **behavior**: Event -[behavior]-> Behavior
+   Meaning: An event/campaign involves specific tactics
+   Example: Operation X -[behavior]-> data exfiltration
+
+## Extracted Entities
+
+{% for entity in entities %}
+- {{ entity.id }} ({{ entity.type }}): {{ entity.name }}
+{% endfor %}
+
+## Extraction Rules
+
+1. Only create relations between entities from the list above
+2. Only use the 7 defined relation types
+3. Follow the source->target type constraints (e.g., "has" must be Attacker->Malware)
+4. `derivation_source` must contain context mentioning both source and target entities
+5. Do NOT fabricate relations not supported by the text
+
+## Target CTI Text
+
+{{ text }}
+
+## Response
+
+Return a valid JSON object with the extracted relations. Your response must be JSON and nothing else.
+{"relations": [{"source_entity_id": "...", "target_entity_id": "...", "relation_type": "...", "derivation_source": "...", "confidence": 1.0}]}

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-测试CTINexus多标签页UI
+测试CSKG4APT多标签页UI
 """
 
 import sys
@@ -14,11 +14,11 @@ if sys.platform == "win32":
     sys.stderr = codecs.getwriter("utf-8")(sys.stderr.detach())
 
 # 添加项目路径
-project_root = Path(__file__).parent / "ctinexus"
+project_root = Path(__file__).parent / "cskg4apt"
 sys.path.insert(0, str(project_root.parent))
 
 print("=" * 80)
-print("CTINexus × CSKG4APT - 多标签页UI测试")
+print("CSKG4APT × CSKG4APT - 多标签页UI测试")
 print("=" * 80)
 print("\n新UI特性:")
 print("✅ Tab 1: 情报提取 - 输入控制、模型配置、JSON结果")
@@ -34,7 +34,7 @@ print("浏览器将自动打开: http://127.0.0.1:7860")
 print("=" * 80 + "\n")
 
 # 启动应用
-from ctinexus.app import main
+from cskg4apt.app import main
 
 if __name__ == "__main__":
     main()

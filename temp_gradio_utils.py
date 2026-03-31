@@ -1,23 +1,23 @@
-     1→# CTINexus × CSKG4APT 融合改造完成报告
+     1→# CSKG4APT × CSKG4APT 融合改造完成报告
      2→
      3→## 📊 改造进度：90% 完成
      4→
      5→### ✅ 已完成工作 (8/9 任务)
      6→
      7→#### 1. ✅ CSKG4APT本体Schema定义
-     8→- **文件**：`ctinexus/schemas/cskg4apt_ontology.py`
+     8→- **文件**：`cskg4apt/schemas/cskg4apt_ontology.py`
      9→- **功能**：12种实体类型 + 7种关系类型的强类型定义
     10→- **特性**：Pydantic验证、CVE格式检查、原文证据强制要求
     11→
     12→#### 2. ✅ CSKG4APT Prompt工程
     13→- **文件**：
-    14→  - `ctinexus/prompts/ie_cskg4apt.jinja`
-    15→  - `ctinexus/prompts/et_cskg4apt.jinja`
+    14→  - `cskg4apt/prompts/ie_cskg4apt.jinja`
+    15→  - `cskg4apt/prompts/et_cskg4apt.jinja`
     16→- **功能**：零样本实体和关系提取的高质量Prompt模板
     17→- **特性**：详细的示例、强制JSON输出、证据链要求
     18→
     19→#### 3. ✅ CSKG4APT提取器
-    20→- **文件**：`ctinexus/cskg4apt_extractor.py`
+    20→- **文件**：`cskg4apt/cskg4apt_extractor.py`
     21→- **功能**：LLM驱动的白盒提取引擎
     22→- **特性**：
     23→  - 滑动窗口分块处理超长文本
@@ -26,7 +26,7 @@
     26→  - 多LLM提供商支持
     27→
     28→#### 4. ✅ Neo4j图数据库管理器
-    29→- **文件**：`ctinexus/graph_db/neo4j_manager.py`
+    29→- **文件**：`cskg4apt/graph_db/neo4j_manager.py`
     30→- **功能**：知识图谱持久化存储
     31→- **特性**：
     32→  - Cypher MERGE自动去重
@@ -35,7 +35,7 @@
     35→  - 优雅降级（未安装Neo4j时）
     36→
     37→#### 5. ✅ 钻石模型威胁归因引擎
-    38→- **文件**：`ctinexus/attribution/diamond_model.py`
+    38→- **文件**：`cskg4apt/attribution/diamond_model.py`
     39→- **功能**：APT组织自动归因
     40→- **场景**：
     41→  1. 未知木马Hash归因
@@ -45,18 +45,18 @@
     45→
     46→#### 6. ✅ 配置文件更新
     47→- **文件**：
-    48→  - `ctinexus/config/config.yaml` - 新增CSKG4APT配置段
+    48→  - `cskg4apt/config/config.yaml` - 新增CSKG4APT配置段
     49→  - `pyproject.toml` - 添加pydantic和neo4j依赖
     50→
     51→#### 7. ✅ 主流程集成
-    52→- **文件**：`ctinexus/utils/gradio_utils.py`
+    52→- **文件**：`cskg4apt/utils/gradio_utils.py`
     53→- **修改**：
     54→  - `run_pipeline()` - 添加 `use_cskg4apt` 参数支持
     55→  - `process_and_visualize()` - 集成CSKG4APT提取器
     56→  - UI界面 - 添加"🎯 启用CSKG4APT模式"复选框
     57→
     58→#### 8. ✅ UI多标签页改造
-    59→- **文件**：`ctinexus/utils/gradio_utils.py`
+    59→- **文件**：`cskg4apt/utils/gradio_utils.py`
     60→- **改造内容**：
     61→  - 创建多标签页布局（Tab 1: 情报提取，Tab 2: 知识图谱，Tab 3: 威胁归因）
     62→  - 知识图谱独立全宽展示（750px高度，95%屏幕利用率）
@@ -85,7 +85,7 @@
     85→### 功能1：CSKG4APT模式提取（已集成到UI）
     86→
     87→**使用方法**：
-    88→1. 启动CTINexus：`python ctinexus/app.py`
+    88→1. 启动CSKG4APT：`python cskg4apt/app.py`
     89→2. 在Gradio界面中：
     90→   - 勾选"🎯 启用CSKG4APT模式"
     91→   - 输入威胁情报URL或上传PDF
@@ -118,7 +118,7 @@
    118→```
    119→
    120→**配置**：
-   121→编辑 `ctinexus/config/config.yaml`：
+   121→编辑 `cskg4apt/config/config.yaml`：
    122→```yaml
    123→neo4j:
    124→  enabled: true
@@ -129,8 +129,8 @@
    129→
    130→**使用Python代码**：
    131→```python
-   132→from ctinexus.graph_db.neo4j_manager import Neo4jKnowledgeGraph
-   133→from ctinexus.cskg4apt_extractor import CSKG4APTExtractor
+   132→from cskg4apt.graph_db.neo4j_manager import Neo4jKnowledgeGraph
+   133→from cskg4apt.cskg4apt_extractor import CSKG4APTExtractor
    134→
    135→# 1. 提取实体和关系
    136→extractor = CSKG4APTExtractor(config)
@@ -156,7 +156,7 @@
    156→
    157→**Python代码示例**：
    158→```python
-   159→from ctinexus.attribution.diamond_model import DiamondModelAttribution
+   159→from cskg4apt.attribution.diamond_model import DiamondModelAttribution
    160→
    161→# 创建归因引擎
    162→attribution = DiamondModelAttribution(graph)
@@ -185,8 +185,8 @@
    185→### 方式1：使用Gradio UI（推荐）
    186→
    187→```bash
-   188→cd e:/CTI/ctinexus
-   189→python ctinexus/app.py
+   188→cd e:/CTI/cskg4apt
+   189→python cskg4apt/app.py
    190→```
    191→
    192→浏览器打开：`http://127.0.0.1:7860`
@@ -194,7 +194,7 @@
    194→### 方式2：使用Python API
    195→
    196→```python
-   197→from ctinexus.cskg4apt_extractor import CSKG4APTExtractor
+   197→from cskg4apt.cskg4apt_extractor import CSKG4APTExtractor
    198→from omegaconf import DictConfig
    199→
    200→# 创建配置
@@ -222,7 +222,7 @@
    222→### 方式3：命令行（暂不支持CSKG4APT模式）
    223→
    224→```bash
-   225→ctinexus --url "https://example.com/report" --output result.json
+   225→cskg4apt --url "https://example.com/report" --output result.json
    226→```
    227→
    228→---
@@ -378,7 +378,7 @@
    378→
    379→### 前端错误展示系统（2026-03-24新增）
    380→
-   381→CTINexus现在拥有完善的错误信息展示系统，所有错误都会以友好的方式呈现：
+   381→CSKG4APT现在拥有完善的错误信息展示系统，所有错误都会以友好的方式呈现：
    382→
    383→#### 错误类型识别
    384→
@@ -433,11 +433,11 @@
    433→
    434→## 📚 相关文档
    435→
-   436→1. **设计方案**：[CTINexus_CSKG4APT融合改造方案.md](e:\\CTI\\CTINexus_CSKG4APT融合改造方案.md)
+   436→1. **设计方案**：[CSKG4APT_CSKG4APT融合改造方案.md](e:\\CTI\\CSKG4APT_CSKG4APT融合改造方案.md)
    437→2. **进度报告**：[改造进度报告_阶段一.md](e:\\CTI\\改造进度报告_阶段一.md)
    438→3. **测试报告**：[CSKG4APT测试报告.md](e:\\CTI\\CSKG4APT测试报告.md)
    439→4. **测试脚本**：[test_cskg4apt.py](e:\\CTI\\test_cskg4apt.py)
-   440→5. **启动脚本**：[start_ctinexus.py](e:\\CTI\\start_ctinexus.py)
+   440→5. **启动脚本**：[start_cskg4apt.py](e:\\CTI\\start_cskg4apt.py)
    441→6. **UI改造说明**：[UI改造说明_多标签页版本.md](e:\\CTI\\UI改造说明_多标签页版本.md)
    442→7. **错误处理说明**：[前端错误处理改进说明.md](e:\\CTI\\前端错误处理改进说明.md)
    443→
@@ -456,7 +456,7 @@
    456→
    457→## 🎉 总结
    458→
-   459→CTINexus × CSKG4APT融合项目已经**90%完成**，核心功能全部就绪！
+   459→CSKG4APT × CSKG4APT融合项目已经**90%完成**，核心功能全部就绪！
    460→
    461→✅ **可以立即使用的功能**：
    462→- CSKG4APT模式提取（UI已集成）
@@ -470,7 +470,7 @@
    470→- UI归因Tab
    471→
    472→**现在您可以：**
-   473→1. 启动Gradio界面：`python ctinexus/app.py`
+   473→1. 启动Gradio界面：`python cskg4apt/app.py`
    474→2. 勾选"🎯 启用CSKG4APT模式"
    475→3. 上传PDF或输入URL
    476→4. 点击"运行"查看结果！

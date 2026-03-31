@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-测试CTINexus前端错误处理功能
+测试CSKG4APT前端错误处理功能
 """
 
 import sys
@@ -14,11 +14,11 @@ if sys.platform == "win32":
     sys.stderr = codecs.getwriter("utf-8")(sys.stderr.detach())
 
 # 添加项目路径
-project_root = Path(__file__).parent / "ctinexus"
+project_root = Path(__file__).parent / "cskg4apt"
 sys.path.insert(0, str(project_root.parent))
 
 print("=" * 80)
-print("CTINexus 前端错误处理测试")
+print("CSKG4APT 前端错误处理测试")
 print("=" * 80)
 print("\n新增功能:")
 print("1. 6种错误类型自动识别（URL、PDF、模型、网络、通用、图谱）")
@@ -40,7 +40,7 @@ print("浏览器将自动打开: http://127.0.0.1:7860")
 print("=" * 80 + "\n")
 
 # 启动应用
-from ctinexus.app import main
+from cskg4apt.app import main
 
 if __name__ == "__main__":
     main()

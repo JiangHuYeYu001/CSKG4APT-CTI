@@ -26,6 +26,14 @@ Thumbs.db
 
 # Output
 ctinexus_output/
+cskg4apt_output/
+**/cskg4apt_output/
 
 # uv lock
 uv.lock
+
+# Pytest cache
+.pytest_cache/
+
+# Gradio
+.gradio/

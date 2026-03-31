@@ -1,0 +1,9 @@
+include LICENSE.txt
+include README.md
+include pyproject.toml
+
+recursive-include cskg4apt/config *.yaml *.json
+recursive-include cskg4apt/prompts *.jinja
+recursive-include cskg4apt/data *.json
+recursive-include cskg4apt/static *.png
+recursive-include docs/ *.md

@@ -22,7 +22,7 @@ if sys.platform == "win32":
     sys.stderr = codecs.getwriter("utf-8")(sys.stderr.detach())
 
 # 添加项目路径到sys.path
-project_root = Path(__file__).parent / "ctinexus"
+project_root = Path(__file__).parent / "cskg4apt"
 sys.path.insert(0, str(project_root.parent))
 
 print("=" * 70)
@@ -32,7 +32,7 @@ print("=" * 70)
 # 测试1: 验证Schema定义
 print("\n[测试1] 验证CSKG4APT Schema定义...")
 try:
-    from ctinexus.schemas.cskg4apt_ontology import (
+    from cskg4apt.schemas.cskg4apt_ontology import (
         EntityType,
         RelationType,
         CSKG4APTEntity,
@@ -73,7 +73,7 @@ try:
     from omegaconf import OmegaConf
 
     # 初始化Hydra（使用项目配置目录）
-    with initialize(version_base=None, config_path="../ctinexus/config"):
+    with initialize(version_base=None, config_path="../cskg4apt/config"):
         cfg = compose(config_name="config")
         print("✅ 配置加载成功")
         print(f"   - 提供商: {cfg.provider}")
@@ -101,7 +101,7 @@ except Exception as e:
 # 测试3: CSKG4APT提取器初始化
 print("\n[测试3] 初始化CSKG4APT提取器...")
 try:
-    from ctinexus.cskg4apt_extractor import CSKG4APTExtractor
+    from cskg4apt.cskg4apt_extractor import CSKG4APTExtractor
 
     extractor = CSKG4APTExtractor(cfg)
     print("✅ 提取器初始化成功")
