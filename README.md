@@ -106,7 +106,7 @@ print(result["entity_relation_graph"])  # 交互式图谱 HTML 路径
 ## 参考文献
 
 - Ren et al. (2023). *CSKG4APT: A Cybersecurity Knowledge Graph for Advanced Persistent Threat Organization Attribution.*
-- Cheng et al. (2025). *CSKG4APT: Automatic Cyber Threat Intelligence Knowledge Graph Construction Using Large Language Models.* IEEE EuroS&P 2025.
+
 
 ## License
 
