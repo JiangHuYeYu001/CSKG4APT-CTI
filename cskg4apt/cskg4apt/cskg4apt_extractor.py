@@ -208,6 +208,7 @@ Rules:
 - Each entity must include derivation_source (the original sentence where it appears)
 - Do not fabricate information not present in the text
 - Deduplicate entities that appear multiple times
+- Limit extraction to at most 64 key entities. Prioritize unique, high-value entities over generic mentions
 
 CTI Text:
 {text}

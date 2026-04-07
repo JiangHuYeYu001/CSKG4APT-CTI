@@ -84,13 +84,19 @@ class TestCheckApiKey:
 		monkeypatch.delenv("OLLAMA_BASE_URL", raising=False)
 		monkeypatch.delenv("CUSTOM_BASE_URL", raising=False)
 		monkeypatch.delenv("CUSTOM_API_KEY", raising=False)
+		monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+		monkeypatch.delenv("DASHSCOPE_API_KEY", raising=False)
+		monkeypatch.delenv("ZHIPUAI_API_KEY", raising=False)
+		monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+		monkeypatch.delenv("QIANFAN_API_KEY", raising=False)
+		monkeypatch.delenv("SPARK_API_KEY", raising=False)
 		MODELS.clear()
 		EMBEDDING_MODELS.clear()
 
 		result = check_api_key()
 
 		assert result is False
-		assert len(MODELS) == 0
+		assert len(MODELS) > 0  # Models are always registered for UI display
 
 	def test_check_api_key_with_custom_endpoint(self, monkeypatch):
 		"""Test that custom endpoint mode enables OpenAI model registration."""
@@ -255,4 +261,6 @@ class TestGetEmbeddingModelChoices:
 
 		for provider in EMBEDDING_MODELS.keys():
 			choices = get_embedding_model_choices(provider)
-			assert len(choices) > 0
+			# Some providers (Anthropic, DeepSeek, Custom) have no embedding models
+			if EMBEDDING_MODELS.get(provider):
+				assert len(choices) > 0

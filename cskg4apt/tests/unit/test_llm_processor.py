@@ -5,41 +5,16 @@ from omegaconf import OmegaConf
 from cskg4apt.llm_processor import (
 	UrlSourceInput,
 	UsageCalculator,
-	call_litellm_completion,
+	_route_llm_call,
 	extract_json_from_response,
-	get_litellm_endpoint_overrides,
 )
 
 
-class TestLiteLLMEndpointOverrides:
-	"""Test LiteLLM endpoint override behavior."""
+class TestRouteLLMCall:
+	"""Test unified provider routing."""
 
-	def test_get_endpoint_overrides_custom_mode(self, monkeypatch):
-		"""Should use custom base URL and key when custom mode is enabled."""
-		monkeypatch.setenv("CUSTOM_BASE_URL", "https://gateway.example.com/v1")
-		monkeypatch.setenv("CUSTOM_API_KEY", "custom-test-key")
-		monkeypatch.setattr("cskg4apt.llm_processor._CUSTOM_ENDPOINT_LOGGED", False)
-
-		overrides = get_litellm_endpoint_overrides()
-
-		assert overrides["api_base"] == "https://gateway.example.com/v1"
-		assert overrides["api_key"] == "custom-test-key"
-
-	def test_get_endpoint_overrides_default_api_base(self, monkeypatch):
-		"""Should fall back to provided default API base in non-custom mode."""
-		monkeypatch.delenv("CUSTOM_BASE_URL", raising=False)
-		monkeypatch.delenv("CUSTOM_API_KEY", raising=False)
-
-		overrides = get_litellm_endpoint_overrides("http://localhost:11434")
-
-		assert overrides == {"api_base": "http://localhost:11434"}
-
-	def test_call_completion_injects_custom_endpoint(self, monkeypatch):
-		"""Should inject custom endpoint settings into LiteLLM completion calls."""
-		monkeypatch.setenv("CUSTOM_BASE_URL", "https://gateway.example.com/v1")
-		monkeypatch.setenv("CUSTOM_API_KEY", "custom-test-key")
-		monkeypatch.setattr("cskg4apt.llm_processor._CUSTOM_ENDPOINT_LOGGED", False)
-
+	def test_custom_provider_routing(self, monkeypatch):
+		"""Should route to custom endpoint when provider is Custom."""
 		captured_kwargs = {}
 
 		def mock_completion(**kwargs):
@@ -48,15 +23,54 @@ class TestLiteLLMEndpointOverrides:
 
 		monkeypatch.setattr("cskg4apt.llm_processor.litellm.completion", mock_completion)
 
-		response = call_litellm_completion(
-			model="gpt-4o",
+		response = _route_llm_call(
+			"Custom", "gpt-4o",
+			custom_base_url="https://gateway.example.com/v1",
+			custom_api_key="custom-test-key",
+			messages=[{"role": "user", "content": "test"}],
+		)
+
+		assert response == {"ok": True}
+		assert captured_kwargs["model"] == "openai/gpt-4o"
+		assert captured_kwargs["api_base"] == "https://gateway.example.com/v1"
+		assert captured_kwargs["api_key"] == "custom-test-key"
+
+	def test_openai_provider_routing(self, monkeypatch):
+		"""Should route OpenAI models without prefix."""
+		captured_kwargs = {}
+
+		def mock_completion(**kwargs):
+			captured_kwargs.update(kwargs)
+			return {"ok": True}
+
+		monkeypatch.setattr("cskg4apt.llm_processor.litellm.completion", mock_completion)
+
+		response = _route_llm_call(
+			"OpenAI", "gpt-4o",
 			messages=[{"role": "user", "content": "test"}],
 		)
 
 		assert response == {"ok": True}
 		assert captured_kwargs["model"] == "gpt-4o"
-		assert captured_kwargs["api_base"] == "https://gateway.example.com/v1"
-		assert captured_kwargs["api_key"] == "custom-test-key"
+		assert "api_base" not in captured_kwargs
+
+	def test_aws_provider_routing(self, monkeypatch):
+		"""Should prefix AWS models with bedrock/."""
+		captured_kwargs = {}
+
+		def mock_completion(**kwargs):
+			captured_kwargs.update(kwargs)
+			return {"ok": True}
+
+		monkeypatch.setattr("cskg4apt.llm_processor.litellm.completion", mock_completion)
+
+		response = _route_llm_call(
+			"AWS", "anthropic.claude-3-7-sonnet",
+			messages=[{"role": "user", "content": "test"}],
+		)
+
+		assert response == {"ok": True}
+		assert captured_kwargs["model"] == "bedrock/anthropic.claude-3-7-sonnet"
 
 
 class TestExtractJsonFromResponse:

@@ -1,4 +1,5 @@
 import json
+import os
 import traceback
 from urllib.parse import urlparse
 
@@ -8,6 +9,7 @@ from omegaconf import DictConfig
 from ..cti_processor import PostProcessor, preprocessor
 from ..graph_constructor import Linker, Merger, create_graph_visualization
 from ..llm_processor import LLMExtractor, LLMTagger, UrlSourceInput
+from .history import ResultHistory
 from .model_utils import (
 	MODELS,
 	check_api_key,
@@ -77,6 +79,8 @@ def run_cskg4apt_pipeline(
 	neo4j_uri: str = None,
 	neo4j_user: str = None,
 	neo4j_password: str = None,
+	custom_base_url: str = None,
+	custom_api_key: str = None,
 	progress=None,
 ) -> str:
 	"""Run the CSKG4APT extraction pipeline."""
@@ -87,13 +91,13 @@ def run_cskg4apt_pipeline(
 
 	try:
 		# CSKG4APT extraction
-		config = get_config(model, None, None)
+		config = get_config(model, None, None, custom_base_url=custom_base_url, custom_api_key=custom_api_key)
 		progress_callback(0.15, desc="CSKG4APT Entity Extraction...")
 
 		from ..cskg4apt_extractor import CSKG4APTExtractor
 
 		extractor = CSKG4APTExtractor(config)
-		kg = extractor.call(text, source_url=source_url)
+		kg = extractor.call(text, source_url=None)
 
 		result = {
 			"graph": kg.to_dict(),
@@ -138,7 +142,8 @@ def run_cskg4apt_pipeline(
 		return f"Error: {str(e)}"
 
 
-def get_config(model: str = None, embedding_model: str = None, similarity_threshold: float = 0.6) -> DictConfig:
+def get_config(model: str = None, embedding_model: str = None, similarity_threshold: float = 0.6,
+				custom_base_url: str = None, custom_api_key: str = None) -> DictConfig:
 	provider = get_model_provider(model, embedding_model)
 	model = model.split("/")[-1] if model else None
 	embedding_model = embedding_model.split("/")[-1] if embedding_model else None
@@ -153,6 +158,10 @@ def get_config(model: str = None, embedding_model: str = None, similarity_thresh
 			overrides.append(f"similarity_threshold={similarity_threshold}")
 		if provider:
 			overrides.append(f"provider={provider}")
+		if custom_base_url:
+			overrides.append(f"custom_base_url={custom_base_url}")
+		if custom_api_key:
+			overrides.append(f"custom_api_key={custom_api_key}")
 		config = compose(config_name="config.yaml", overrides=overrides)
 	return config
 
@@ -165,6 +174,8 @@ def run_pipeline(
 	ea_model: str = None,
 	lp_model: str = None,
 	similarity_threshold: float = 0.6,
+	custom_base_url: str = None,
+	custom_api_key: str = None,
 	progress=None,
 ):
 	"""Run the entire pipeline in sequence"""
@@ -176,11 +187,14 @@ def run_pipeline(
 	if source_url and not is_valid_source_url(source_url):
 		return "Error: Invalid URL format. Please provide a valid http/https URL."
 
+	# Helper to pass custom config through all stages
+	cfg_kwargs = {"custom_base_url": custom_base_url, "custom_api_key": custom_api_key}
+
 	try:
 		url_source_result = None
 
 		if source_url and source_url.strip():
-			config = get_config(ie_model, None, None)
+			config = get_config(ie_model, None, None, **cfg_kwargs)
 			progress_callback(0.05, desc="Ingesting URL source...")
 			url_source_result = run_url_source_input(config, source_url)
 			if url_source_result.get("status") != "success":
@@ -193,22 +207,22 @@ def run_pipeline(
 		if not text:
 			return "Error: No usable report content was found from the URL source."
 
-		config = get_config(ie_model, None, None)
+		config = get_config(ie_model, None, None, **cfg_kwargs)
 		progress_callback(0.2, desc="Intelligence Extraction...")
 		extraction_result = run_intel_extraction(config, text)
 		if url_source_result:
 			extraction_result["URL_SOURCE"] = url_source_result
 
-		config = get_config(et_model, None, None)
+		config = get_config(et_model, None, None, **cfg_kwargs)
 		progress_callback(0.45, desc="Entity Tagging...")
 		tagging_result = run_entity_tagging(config, extraction_result)
 
 		progress_callback(0.7, desc="Entity Alignment...")
-		config = get_config(None, ea_model, similarity_threshold)
+		config = get_config(None, ea_model, similarity_threshold, **cfg_kwargs)
 		config.similarity_threshold = similarity_threshold
 		alignment_result = run_entity_alignment(config, tagging_result)
 
-		config = get_config(lp_model, None, None)
+		config = get_config(lp_model, None, None, **cfg_kwargs)
 		progress_callback(0.9, desc="Link Prediction...")
 		linking_result = run_link_prediction(config, alignment_result)
 
@@ -233,6 +247,8 @@ def process_and_visualize(
 	provider_dropdown=None,
 	custom_model_input=None,
 	custom_embedding_model_input=None,
+	custom_base_url=None,
+	custom_api_key=None,
 	progress=None,
 ):
 	if input_source == "CTI Report URL":
@@ -252,7 +268,10 @@ def process_and_visualize(
 	ea_model = custom_embedding_model if ea_model == "Other" else ea_model
 
 	# Run pipeline with progress tracking
-	result = run_pipeline(text, source_url, ie_model, et_model, ea_model, lp_model, similarity_threshold, progress)
+	result = run_pipeline(
+		text, source_url, ie_model, et_model, ea_model, lp_model, similarity_threshold,
+		custom_base_url=custom_base_url, custom_api_key=custom_api_key, progress=progress
+	)
 	if result.startswith("Error:"):
 		return (
 			result,
@@ -262,7 +281,17 @@ def process_and_visualize(
 	try:
 		# Create visualization without progress tracking
 		result_dict = json.loads(result)
-		graph_url, _ = create_graph_visualization(result_dict)
+		graph_url, graph_filepath = create_graph_visualization(result_dict)
+
+		# Save to history
+		input_text = text or source_url or ""
+		ResultHistory.save(
+			pipeline_type="generic",
+			result_json=result,
+			graph_file=graph_filepath,
+			input_preview=input_text[:200],
+			config_info={"model": ie_model},
+		)
 		graph_html_content = f"""
         <div style="text-align: center; padding: 10px; margin-top: -20px;">
             <h2 style="margin-bottom: 0.5em;">Entity Relationship Graph</h2>
@@ -342,6 +371,8 @@ def process_and_visualize_cskg4apt(
 	neo4j_uri,
 	neo4j_user,
 	neo4j_password,
+	custom_base_url=None,
+	custom_api_key=None,
 	progress=None,
 ):
 	"""Process CSKG4APT pipeline and create visualization."""
@@ -368,6 +399,8 @@ def process_and_visualize_cskg4apt(
 		neo4j_uri=neo4j_uri,
 		neo4j_user=neo4j_user,
 		neo4j_password=neo4j_password,
+		custom_base_url=custom_base_url,
+		custom_api_key=custom_api_key,
 		progress=progress,
 	)
 
@@ -381,7 +414,17 @@ def process_and_visualize_cskg4apt(
 		# Create CSKG4APT visualization
 		from ..graph_constructor import create_cskg4apt_graph_visualization
 
-		graph_url, _ = create_cskg4apt_graph_visualization(graph_dict)
+		graph_url, graph_filepath = create_cskg4apt_graph_visualization(graph_dict)
+
+		# Save to history
+		input_text = text or ""
+		ResultHistory.save(
+			pipeline_type="cskg4apt",
+			result_json=result,
+			graph_file=graph_filepath,
+			input_preview=input_text[:200],
+			config_info={"model": model},
+		)
 
 		graph_html = ""
 		if graph_url:
@@ -419,6 +462,114 @@ def process_and_visualize_cskg4apt(
 def clear_outputs():
 	"""Clear all outputs when run button is clicked"""
 	return "", None, get_metrics_box()
+
+
+def _load_history_entry(history_id: str, pipeline_type: str):
+	"""Load a history entry and return results for display."""
+	from .http_server_utils import get_current_port
+
+	if not history_id:
+		if pipeline_type == "cskg4apt":
+			return "", None, "{}", "{}"
+		return "", None, get_metrics_box()
+
+	entry = ResultHistory.load(history_id)
+	if not entry:
+		if pipeline_type == "cskg4apt":
+			return "Error: History entry not found.", None, "{}", "{}"
+		return "Error: History entry not found.", None, get_metrics_box()
+
+	result_json = entry.get("result_json", "")
+
+	if pipeline_type == "cskg4apt":
+		# Build graph HTML from saved graph file
+		graph_html = ""
+		graph_url_path = entry.get("graph_url_path")
+		if graph_url_path:
+			http_port = get_current_port()
+			graph_url = f"http://localhost:{http_port}/{graph_url_path}"
+			graph_html = f"""
+			<div style="text-align: center; padding: 10px; margin-top: -20px;">
+				<h2 style="margin-bottom: 0.5em;">CSKG4APT Knowledge Graph</h2>
+				<em>Drag nodes / Scroll to zoom / Drag background to pan</em>
+			</div>
+			<div id="iframe-container">
+				<iframe src="{graph_url}"
+				width="100%" height="700" frameborder="0" scrolling="no"
+				style="display: block; clip-path: inset(13px 3px 5px 3px); overflow: hidden;">
+				</iframe>
+			</div>
+			<div style="text-align: center;">
+				<a href="{graph_url}" target="_blank" style="color: #7c4dff; text-decoration: none;">
+				Open in New Tab
+				</a>
+			</div>"""
+
+		# Extract threat cards and diamond model from result
+		threat_cards_json = "{}"
+		diamond_json = "{}"
+		try:
+			result_dict = json.loads(result_json)
+			threat_cards_json = json.dumps(result_dict.get("threat_cards", []), indent=2, ensure_ascii=False)
+			diamond_json = json.dumps(result_dict.get("diamond_model", []), indent=2, ensure_ascii=False)
+		except (json.JSONDecodeError, Exception):
+			pass
+
+		return result_json, graph_html, threat_cards_json, diamond_json
+	else:
+		# Generic pipeline - build graph + metrics
+		graph_html = ""
+		graph_url_path = entry.get("graph_url_path")
+		if graph_url_path:
+			http_port = get_current_port()
+			graph_url = f"http://localhost:{http_port}/{graph_url_path}"
+			graph_html = f"""
+			<div style="text-align: center; padding: 10px; margin-top: -20px;">
+				<h2 style="margin-bottom: 0.5em;">Entity Relationship Graph</h2>
+				<em>Drag nodes • Scroll to zoom • Drag background to pan</em>
+			</div>
+			<div id="iframe-container">
+				<iframe src="{graph_url}"
+				width="100%" height="700" frameborder="0" scrolling="no"
+				style="display: block; clip-path: inset(13px 3px 5px 3px); overflow: hidden;">
+				</iframe>
+			</div>
+			<div style="text-align: center;">
+				<a href="{graph_url}" target="_blank" style="color: #7c4dff; text-decoration: none;">
+				Open in New Tab
+				</a>
+			</div>"""
+
+		metrics = get_metrics_box()
+		try:
+			result_dict = json.loads(result_json)
+			ie_data = result_dict.get("IE", {})
+			et_data = result_dict.get("ET", {})
+			ea_data = result_dict.get("EA", {})
+			lp_data = result_dict.get("LP", {})
+			ie_metrics = f"Model: {ie_data.get('model_usage', {}).get('model', 'N/A')}<br>Time: {ie_data.get('response_time', 0):.2f}s<br>Cost: ${ie_data.get('model_usage', {}).get('total', {}).get('cost', 0):.6f}"
+			et_metrics = f"Model: {et_data.get('model_usage', {}).get('model', 'N/A')}<br>Time: {et_data.get('response_time', 0):.2f}s<br>Cost: ${et_data.get('model_usage', {}).get('total', {}).get('cost', 0):.6f}"
+			ea_metrics = f"Model: {ea_data.get('model_usage', {}).get('model', 'N/A')}<br>Time: {ea_data.get('response_time', 0):.2f}s<br>Cost: ${ea_data.get('model_usage', {}).get('total', {}).get('cost', 0):.6f}"
+			lp_metrics = f"Model: {lp_data.get('model_usage', {}).get('model', 'N/A')}<br>Time: {lp_data.get('response_time', 0):.2f}s<br>Cost: ${lp_data.get('model_usage', {}).get('total', {}).get('cost', 0):.6f}"
+			metrics = get_metrics_box(ie_metrics, et_metrics, ea_metrics, lp_metrics)
+		except (json.JSONDecodeError, Exception):
+			pass
+
+		return result_json, graph_html, metrics
+
+
+def _delete_history_entry(history_id: str, pipeline_type: str):
+	"""Delete a history entry and return updated dropdown choices."""
+	if history_id:
+		ResultHistory.delete(history_id)
+	choices = ResultHistory.get_choices(pipeline_type=pipeline_type)
+	return gr.update(choices=choices, value=None)
+
+
+def _refresh_history_choices(pipeline_type: str = None):
+	"""Return updated dropdown choices for history."""
+	choices = ResultHistory.get_choices(pipeline_type=pipeline_type)
+	return gr.update(choices=choices, value=None)
 
 
 def is_valid_source_url(source_url: str) -> bool:
@@ -664,15 +815,28 @@ def build_interface(warning: str = None):
 							placeholder="e.g. gpt-4o, deepseek-chat",
 							visible=False,
 						)
+						with gr.Group(visible=False) as cskg_custom_endpoint_group:
+							cskg_custom_base_url = gr.Textbox(
+								label="API Base URL",
+								placeholder="https://api.example.com/v1",
+								value=os.getenv("CUSTOM_BASE_URL", ""),
+							)
+							cskg_custom_api_key = gr.Textbox(
+								label="API Key",
+								type="password",
+								value=os.getenv("CUSTOM_API_KEY", ""),
+							)
 
 						def update_cskg_models(provider):
 							choices = get_model_choices(provider) + [("Other", "Other")]
-							return gr.Dropdown(choices=choices, value=choices[0][1] if choices else None)
+							model_dd = gr.Dropdown(choices=choices, value=choices[0][1] if choices else None)
+							endpoint_visible = (provider == "Custom")
+							return model_dd, gr.update(visible=endpoint_visible)
 
 						def toggle_cskg_custom_model(model_value):
 							return gr.update(visible=(model_value == "Other"))
 
-						cskg_provider.change(fn=update_cskg_models, inputs=[cskg_provider], outputs=[cskg_model])
+						cskg_provider.change(fn=update_cskg_models, inputs=[cskg_provider], outputs=[cskg_model, cskg_custom_endpoint_group])
 						cskg_model.change(fn=toggle_cskg_custom_model, inputs=[cskg_model], outputs=[cskg_custom_model])
 
 						gr.Markdown("<div class='section-title' style='margin-top:12px;'>ANALYSIS OPTIONS</div>")
@@ -723,8 +887,23 @@ def build_interface(warning: str = None):
 							show_line_numbers=False,
 						)
 
+				# ===== HISTORY SECTION (CSKG4APT Tab) =====
+				gr.Markdown("<div class='section-title' style='margin-top:12px;'>EXTRACTION HISTORY</div>")
+				with gr.Row():
+					with gr.Column(scale=3):
+						cskg_history_dropdown = gr.Dropdown(
+							choices=ResultHistory.get_choices(pipeline_type="cskg4apt"),
+							label="Previous Extractions",
+							value=None,
+							info="Select a past result to reload",
+						)
+					with gr.Column(scale=1):
+						cskg_load_history_btn = gr.Button("Load Selected", variant="secondary")
+						cskg_delete_history_btn = gr.Button("Delete Selected", variant="stop")
+
 				def run_cskg4apt_with_progress(
 					input_source, text, pdf_file, provider, model, custom_model,
+					custom_base_url, custom_api_key,
 					diamond, threat_card, neo4j_enabled,
 					neo4j_uri, neo4j_user, neo4j_pass,
 					progress=gr.Progress(track_tqdm=False),
@@ -740,6 +919,8 @@ def build_interface(warning: str = None):
 						input_source, text, pdf_file, resolved_model,
 						diamond, threat_card, neo4j_enabled,
 						neo4j_uri, neo4j_user, neo4j_pass,
+						custom_base_url=custom_base_url,
+						custom_api_key=custom_api_key,
 						progress=progress,
 					)
 
@@ -752,10 +933,30 @@ def build_interface(warning: str = None):
 					inputs=[
 						cskg_input_source, cskg_text_input, cskg_pdf_input,
 						cskg_provider, cskg_model, cskg_custom_model,
+						cskg_custom_base_url, cskg_custom_api_key,
 						cskg_diamond, cskg_threat_card, cskg_neo4j,
 						cskg_neo4j_uri, cskg_neo4j_user, cskg_neo4j_pass,
 					],
 					outputs=[cskg_results, cskg_graph, cskg_threat_cards_output, cskg_diamond_output],
+				)
+
+				def cskg_load_selected(history_id):
+					result, graph, tc, dm = _load_history_entry(history_id, "cskg4apt")
+					return result, graph, tc, dm
+
+				def cskg_delete_selected(history_id):
+					dd_update = _delete_history_entry(history_id, "cskg4apt")
+					return dd_update, "", None, "{}", "{}"
+
+				cskg_load_history_btn.click(
+					fn=cskg_load_selected,
+					inputs=[cskg_history_dropdown],
+					outputs=[cskg_results, cskg_graph, cskg_threat_cards_output, cskg_diamond_output],
+				)
+				cskg_delete_history_btn.click(
+					fn=cskg_delete_selected,
+					inputs=[cskg_history_dropdown],
+					outputs=[cskg_history_dropdown, cskg_results, cskg_graph, cskg_threat_cards_output, cskg_diamond_output],
 				)
 
 			# ==================== TAB 2: GENERIC PIPELINE ====================
@@ -848,6 +1049,20 @@ def build_interface(warning: str = None):
 							with gr.Column(scale=1):
 								custom_embedding_model_input = gr.Textbox(label="Custom Embedding Model", placeholder="Enter custom embedding model name...", visible=False)
 
+						with gr.Group(visible=False) as custom_endpoint_group:
+							gr.Markdown("**Custom Endpoint Configuration**")
+							with gr.Row():
+								custom_base_url_input = gr.Textbox(
+									label="API Base URL",
+									placeholder="https://api.example.com/v1",
+									value=os.getenv("CUSTOM_BASE_URL", ""),
+								)
+								custom_api_key_input = gr.Textbox(
+									label="API Key",
+									type="password",
+									value=os.getenv("CUSTOM_API_KEY", ""),
+								)
+
 						def toggle_custom_model_inputs(ie_value, et_value, ea_value, lp_value):
 							show_custom_model = any(value == "Other" for value in [ie_value, et_value, lp_value])
 							show_custom_embedding_model = ea_value == "Other"
@@ -880,18 +1095,21 @@ def build_interface(warning: str = None):
 						gr.Dropdown(choices=model_choices, value=model_choices[0][1] if model_choices else None),
 						gr.Dropdown(choices=embedding_choices, value=embedding_choices[0][1] if embedding_choices else None),
 						gr.Dropdown(choices=model_choices, value=model_choices[0][1] if model_choices else None),
+						gr.update(visible=(provider == "Custom")),
 					)
 
-				provider_dropdown.change(fn=update_model_choices, inputs=[provider_dropdown], outputs=[ie_dropdown, et_dropdown, ea_dropdown, lp_dropdown])
+				provider_dropdown.change(fn=update_model_choices, inputs=[provider_dropdown], outputs=[ie_dropdown, et_dropdown, ea_dropdown, lp_dropdown, custom_endpoint_group])
 
 				def process_and_visualize_with_progress(
 					input_source, text, source_url, ie_model, et_model, ea_model, lp_model,
 					similarity_threshold, provider_dropdown, custom_model_input, custom_embedding_model_input,
+					custom_base_url, custom_api_key,
 					progress=gr.Progress(track_tqdm=False),
 				):
 					return process_and_visualize(
 						input_source, text, source_url, ie_model, et_model, ea_model, lp_model,
 						similarity_threshold, provider_dropdown, custom_model_input, custom_embedding_model_input,
+						custom_base_url, custom_api_key,
 						progress=progress,
 					)
 
@@ -900,8 +1118,42 @@ def build_interface(warning: str = None):
 				).then(
 					fn=process_and_visualize_with_progress,
 					inputs=[input_source_selector, text_input, url_input, ie_dropdown, et_dropdown, ea_dropdown, lp_dropdown,
-						similarity_slider, provider_dropdown, custom_model_input, custom_embedding_model_input],
+						similarity_slider, provider_dropdown, custom_model_input, custom_embedding_model_input,
+						custom_base_url_input, custom_api_key_input],
 					outputs=[results_box, graph_output, metrics_table],
+				)
+
+				# ===== HISTORY SECTION (Generic Tab) =====
+				gr.Markdown("<div class='section-title' style='margin-top:12px;'>PIPELINE HISTORY</div>")
+				with gr.Row():
+					with gr.Column(scale=3):
+						generic_history_dropdown = gr.Dropdown(
+							choices=ResultHistory.get_choices(pipeline_type="generic"),
+							label="Previous Pipeline Runs",
+							value=None,
+							info="Select a past result to reload",
+						)
+					with gr.Column(scale=1):
+						generic_load_history_btn = gr.Button("Load Selected", variant="secondary")
+						generic_delete_history_btn = gr.Button("Delete Selected", variant="stop")
+
+				def generic_load_selected(history_id):
+					result, graph, metrics = _load_history_entry(history_id, "generic")
+					return result, graph, metrics
+
+				def generic_delete_selected(history_id):
+					dd_update = _delete_history_entry(history_id, "generic")
+					return dd_update, "", None, get_metrics_box()
+
+				generic_load_history_btn.click(
+					fn=generic_load_selected,
+					inputs=[generic_history_dropdown],
+					outputs=[results_box, graph_output, metrics_table],
+				)
+				generic_delete_history_btn.click(
+					fn=generic_delete_selected,
+					inputs=[generic_history_dropdown],
+					outputs=[generic_history_dropdown, results_box, graph_output, metrics_table],
 				)
 
 		# ===== FOOTER =====
@@ -913,4 +1165,14 @@ def build_interface(warning: str = None):
 			</div>
 		""")
 
-	app.launch()
+		def _refresh_all_history():
+			cskg_choices = ResultHistory.get_choices(pipeline_type="cskg4apt")
+			generic_choices = ResultHistory.get_choices(pipeline_type="generic")
+			return gr.update(choices=cskg_choices, value=None), gr.update(choices=generic_choices, value=None)
+
+		app.load(
+			fn=_refresh_all_history,
+			outputs=[cskg_history_dropdown, generic_history_dropdown],
+		)
+
+	return app

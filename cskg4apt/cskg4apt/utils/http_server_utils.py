@@ -72,12 +72,15 @@ def is_our_server_responding(port: int, timeout: float = 1.0) -> bool:
 
 
 def cleanup_old_files(directory: str):
-	"""Clean up old pyvis html files"""
+	"""Clean up old pyvis html files. Skips subdirectories (e.g. history/)."""
 	try:
 		if os.path.exists(directory):
 			current_time = time.time()
 			for filename in os.listdir(directory):
 				filepath = os.path.join(directory, filename)
+				# Skip subdirectories (history/ etc.)
+				if os.path.isdir(filepath):
+					continue
 				# Remove files older than 30 minutes
 				if os.path.isfile(filepath) and os.path.getmtime(filepath) < current_time - 1800:
 					try:
