@@ -51,6 +51,7 @@ Your task is to extract all entities from the given CTI text according to the CS
 3. Do NOT fabricate information - only extract what is present in the text
 4. Deduplicate: if an entity appears multiple times, record it only once
 5. For CVE IDs, use the CVE ID as the entity id (e.g., "cve-2017-0143")
+6. Limit extraction to at most 64 key entities. Prioritize unique, high-value entities (attackers, malware, vulnerabilities, critical behaviors) over generic or repeated mentions.
 
 ## Example
 
@@ -75,5 +76,5 @@ Output:
 
 ## Response
 
-Return a valid JSON object with the extracted entities. Your response must be JSON and nothing else.
+Return a valid JSON object with no more than 64 extracted entities. Your response must be JSON and nothing else.
 {"entities": [...]}

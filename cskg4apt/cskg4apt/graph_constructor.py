@@ -10,7 +10,7 @@ from omegaconf import DictConfig
 from pyvis.network import Network
 from scipy.spatial.distance import cosine
 
-from cskg4apt.llm_processor import LLMLinker, UsageCalculator, get_litellm_endpoint_overrides
+from cskg4apt.llm_processor import LLMLinker, UsageCalculator, _route_llm_call
 from cskg4apt.utils.http_server_utils import get_current_port
 
 logger = logging.getLogger(__name__)
@@ -269,12 +269,11 @@ class Merger:
 			api_base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 			embedding_model = f"ollama/{embedding_model}"
 
-		request_kwargs = {
-			"model": embedding_model,
-			"input": texts,
-		}
-		request_kwargs.update(get_litellm_endpoint_overrides(api_base_url))
-		self.response = litellm.embedding(**request_kwargs)
+		self.response = litellm.embedding(
+			model=embedding_model,
+			input=texts,
+			**({"api_base": api_base_url} if api_base_url else {}),
+		)
 
 		self.usage = UsageCalculator(self.config, self.response).calculate()
 		self.response_time = time.time() - startTime

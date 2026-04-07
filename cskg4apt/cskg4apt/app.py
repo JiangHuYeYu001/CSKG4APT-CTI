@@ -55,11 +55,17 @@ def create_argument_parser():
 	parser.add_argument(
 		"--provider",
 		type=str,
-		help="AI provider to use: OpenAI, Gemini, AWS, Ollama, Anthropic, Tongyi, ZhipuAI, DeepSeek, Baidu, or Spark (auto-detected if not specified)",
+		help="AI provider: OpenAI, Anthropic, Gemini, AWS, Ollama, Tongyi, ZhipuAI, DeepSeek, Baidu, Spark, or Custom",
 	)
-	parser.add_argument("--model", type=str, help="Model to use for all text processing steps (e.g., gpt-4o, o4-mini)")
+	parser.add_argument("--model", type=str, help="Model to use for all text processing steps (e.g., gpt-5.4-mini, o4-mini)")
 	parser.add_argument(
 		"--embedding-model", type=str, help="Embedding model for entity alignment (e.g., text-embedding-3-large)"
+	)
+	parser.add_argument(
+		"--base-url", type=str, help="Custom API base URL (for Custom provider or OpenAI-compatible endpoints)"
+	)
+	parser.add_argument(
+		"--custom-api-key", type=str, help="API key for custom endpoint (used with --base-url)"
 	)
 	parser.add_argument("--ie-model", type=str, help="Override model for Intelligence Extraction")
 	parser.add_argument("--et-model", type=str, help="Override model for Entity Tagging")
@@ -88,16 +94,17 @@ def create_argument_parser():
 
 def get_default_models_for_provider(provider):
 	defaults = {
-		"OpenAI": {"model": "o4-mini", "embedding_model": "text-embedding-3-large"},
-		"Gemini": {"model": "gemini-2.0-flash", "embedding_model": "gemini-embedding-001"},
-		"AWS": {"model": "anthropic.claude-3-5-sonnet", "embedding_model": "amazon.titan-embed-text-v2:0"},
+		"OpenAI": {"model": "gpt-5.4-mini", "embedding_model": "text-embedding-3-large"},
+		"Anthropic": {"model": "claude-sonnet-4-6", "embedding_model": "text-embedding-3-large"},
+		"Gemini": {"model": "gemini-3.1-flash", "embedding_model": "gemini-embedding-2-preview"},
+		"AWS": {"model": "anthropic.claude-3-7-sonnet", "embedding_model": "amazon.titan-embed-text-v2:0"},
 		"Ollama": {"model": "llama3.1:8b", "embedding_model": "nomic-embed-text"},
-		"Anthropic": {"model": "claude-sonnet-4-20250514", "embedding_model": "text-embedding-3-large"},
-		"Tongyi": {"model": "qwen-max", "embedding_model": "text-embedding-v3"},
-		"ZhipuAI": {"model": "glm-4-plus", "embedding_model": "embedding-3"},
+		"Tongyi": {"model": "qwen3.6-plus", "embedding_model": "qwen3-embedding"},
+		"ZhipuAI": {"model": "glm-5-turbo", "embedding_model": "embedding-3"},
 		"DeepSeek": {"model": "deepseek-chat", "embedding_model": "text-embedding-3-large"},
-		"Baidu": {"model": "ernie-4.5-8k", "embedding_model": "bge-large-zh"},
-		"Spark": {"model": "spark-max", "embedding_model": "text-embedding-3-large"},
+		"Baidu": {"model": "ernie-5.0", "embedding_model": "ernie-text-embedding"},
+		"Spark": {"model": "spark-x2", "embedding_model": "spark-embedding"},
+		"Custom": {"model": "", "embedding_model": ""},
 	}
 	return defaults.get(provider, {})
 
@@ -170,6 +177,8 @@ def run_cmd_pipeline(args):
 				text=text,
 				source_url=source_url,
 				model=ie_model,
+				custom_base_url=getattr(args, "base_url", None),
+				custom_api_key=getattr(args, "custom_api_key", None),
 			)
 		else:
 			result = run_pipeline(
@@ -180,6 +189,8 @@ def run_cmd_pipeline(args):
 				ea_model=ea_model,
 				lp_model=lp_model,
 				similarity_threshold=args.similarity_threshold,
+				custom_base_url=getattr(args, "base_url", None),
+				custom_api_key=getattr(args, "custom_api_key", None),
 			)
 
 		if result.startswith("Error:"):
@@ -245,7 +256,8 @@ def main():
 				"Or use export OPENAI_API_KEY='...' command to set it. Supported providers are OpenAI, Gemini, AWS, Ollama, Anthropic, Tongyi, ZhipuAI, DeepSeek, Baidu, and Spark."
 			)
 			logger.warning(warning.strip())
-		build_interface(warning)
+		app = build_interface(warning)
+		app.launch()
 	else:
 		# Command line mode
 		if not api_keys_available:

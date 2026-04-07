@@ -2,13 +2,14 @@
 #                       CSKG4APT Configuration
 # =============================================================================
 
-# API Configuration
-api_key: ${oc.env:OPENAI_API_KEY}  # Populated from environment variable
-
 # Model Settings
-provider: OpenAI                              # AI provider (OpenAI, Gemini, AWS)
-model: gpt-4.1                               # Default model for text generation
-embedding_model: text-embedding-3-large      # Model for vector embeddings
+provider: OpenAI                              # AI provider (OpenAI, Anthropic, Gemini, AWS, Ollama, Tongyi, ZhipuAI, DeepSeek, Baidu, Spark, Custom)
+model: gpt-5.4-mini                           # Default model for text generation
+embedding_model: text-embedding-3-large       # Model for vector embeddings
+
+# Custom endpoint (OpenAI-compatible third-party source)
+custom_base_url: ${oc.env:CUSTOM_BASE_URL,""}
+custom_api_key: ${oc.env:CUSTOM_API_KEY,""}
 
 # Similarity threshold for entity matching
 similarity_threshold: 0.6  # Range: 0.0-1.0, higher = more strict matching

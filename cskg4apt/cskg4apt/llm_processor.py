@@ -25,35 +25,68 @@ logger = logging.getLogger(__name__)
 _STOPWORDS_CACHE = None
 
 litellm.drop_params = True
-_CUSTOM_ENDPOINT_LOGGED = False
 
 
-def get_litellm_endpoint_overrides(default_api_base: str = None) -> dict:
-	"""Resolve LiteLLM endpoint overrides from environment variables."""
-	global _CUSTOM_ENDPOINT_LOGGED
+def _route_llm_call(provider: str, model_id: str, custom_base_url: str = None, custom_api_key: str = None, **completion_kwargs):
+	"""Unified provider routing for LiteLLM completion calls.
 
-	custom_base_url = (os.getenv("CUSTOM_BASE_URL") or "").strip()
-	if custom_base_url:
-		custom_api_key = os.getenv("CUSTOM_API_KEY")
-		if not _CUSTOM_ENDPOINT_LOGGED:
-			logger.info("Using custom LLM endpoint: %s", custom_base_url)
-			_CUSTOM_ENDPOINT_LOGGED = True
-		return {
-			"api_base": custom_base_url,
-			"api_key": custom_api_key if custom_api_key is not None else "",
-		}
+	Handles model prefix, api_base, and api_key resolution per provider.
+	All other kwargs (messages, temperature, max_tokens, etc.) are passed through as-is.
+	"""
+	provider = provider.lower()
 
-	if default_api_base:
-		return {"api_base": default_api_base}
-
-	return {}
-
-
-def call_litellm_completion(model: str, *, default_api_base: str = None, **completion_kwargs):
-	"""Call LiteLLM completion with optional endpoint overrides."""
-	request_kwargs = dict(completion_kwargs)
-	request_kwargs.update(get_litellm_endpoint_overrides(default_api_base))
-	return litellm.completion(model=model, **request_kwargs)
+	if provider == "anthropic":
+		return litellm.completion(model=f"anthropic/{model_id}", **completion_kwargs)
+	elif provider == "gemini":
+		return litellm.completion(model=f"gemini/{model_id}", **completion_kwargs)
+	elif provider == "aws":
+		return litellm.completion(model=f"bedrock/{model_id}", **completion_kwargs)
+	elif provider == "ollama":
+		base = custom_base_url or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+		return litellm.completion(model=f"ollama/{model_id}", api_base=base, **completion_kwargs)
+	elif provider == "tongyi":
+		return litellm.completion(
+			model=f"openai/{model_id}",
+			api_base="https://dashscope.aliyuncs.com/compatible-mode/v1",
+			api_key=os.getenv("DASHSCOPE_API_KEY", ""),
+			**completion_kwargs,
+		)
+	elif provider == "zhipuai":
+		return litellm.completion(
+			model=f"openai/{model_id}",
+			api_base="https://open.bigmodel.cn/api/paas/v4",
+			api_key=os.getenv("ZHIPUAI_API_KEY", ""),
+			**completion_kwargs,
+		)
+	elif provider == "deepseek":
+		return litellm.completion(
+			model=f"deepseek/{model_id}",
+			api_key=os.getenv("DEEPSEEK_API_KEY", ""),
+			**completion_kwargs,
+		)
+	elif provider == "baidu":
+		return litellm.completion(
+			model=f"openai/{model_id}",
+			api_base="https://qianfan.baidubce.com/v2",
+			api_key=os.getenv("QIANFAN_API_KEY", ""),
+			**completion_kwargs,
+		)
+	elif provider == "spark":
+		return litellm.completion(
+			model=f"openai/{model_id}",
+			api_base="https://spark-api-open.xf-yun.com/v1",
+			api_key=os.getenv("SPARK_API_KEY", ""),
+			**completion_kwargs,
+		)
+	elif provider == "custom":
+		return litellm.completion(
+			model=f"openai/{model_id}",
+			api_base=custom_base_url,
+			api_key=custom_api_key or "",
+			**completion_kwargs,
+		)
+	else:
+		return litellm.completion(model=model_id, **completion_kwargs)
 
 
 def get_english_stopwords():
@@ -674,61 +707,16 @@ class UrlSourceInput:
 		start_time = time.time()
 		provider = self.config.provider.lower()
 		model_id = self.config.model
+		custom_base_url = getattr(self.config, "custom_base_url", None)
+		custom_api_key = getattr(self.config, "custom_api_key", None)
 
-		completion_kwargs = {
-			"messages": prompt,
-			"temperature": 0.0,
-		}
-
-		if provider == "gemini":
-			response = call_litellm_completion(model=f"gemini/{model_id}", **completion_kwargs)
-		elif provider == "ollama":
-			ollama_base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-			response = call_litellm_completion(
-				model=f"ollama/{model_id}",
-				default_api_base=ollama_base_url,
-				**completion_kwargs,
-			)
-		elif provider == "anthropic":
-			response = call_litellm_completion(
-				model=f"anthropic/{model_id}", **completion_kwargs
-			)
-		elif provider == "tongyi":
-			response = litellm.completion(
-				model=f"openai/{model_id}",
-				api_base="https://dashscope.aliyuncs.com/compatible-mode/v1",
-				api_key=os.getenv("DASHSCOPE_API_KEY", ""),
-				**completion_kwargs,
-			)
-		elif provider == "zhipuai":
-			response = litellm.completion(
-				model=f"openai/{model_id}",
-				api_base="https://open.bigmodel.cn/api/paas/v4",
-				api_key=os.getenv("ZHIPUAI_API_KEY", ""),
-				**completion_kwargs,
-			)
-		elif provider == "deepseek":
-			response = litellm.completion(
-				model=f"deepseek/{model_id}",
-				api_key=os.getenv("DEEPSEEK_API_KEY", ""),
-				**completion_kwargs,
-			)
-		elif provider == "baidu":
-			response = litellm.completion(
-				model=f"openai/{model_id}",
-				api_base="https://qianfan.baidubce.com/v2",
-				api_key=os.getenv("QIANFAN_API_KEY", ""),
-				**completion_kwargs,
-			)
-		elif provider == "spark":
-			response = litellm.completion(
-				model=f"openai/{model_id}",
-				api_base="https://spark-api-open.xf-yun.com/v1",
-				api_key=os.getenv("SPARK_API_KEY", ""),
-				**completion_kwargs,
-			)
-		else:
-			response = call_litellm_completion(model=model_id, **completion_kwargs)
+		response = _route_llm_call(
+			provider, model_id,
+			custom_base_url=custom_base_url,
+			custom_api_key=custom_api_key,
+			messages=prompt,
+			temperature=0.0,
+		)
 
 		response_time = time.time() - start_time
 		summary_text = response.choices[0].message.content.strip() if response.choices else ""
@@ -1057,123 +1045,47 @@ class LLMCaller:
 	def __init__(self, config: DictConfig, prompt) -> None:
 		self.config = config
 		self.prompt = prompt
-		self.max_tokens = 4096
+		self.max_tokens = 16384
 
 	@with_retry()
 	def query_llm(self):
-		"""Query LLM using litellm"""
+		"""Query LLM using litellm via unified routing."""
 		try:
 			provider = self.config.provider.lower()
 			model_id = self.config.model
+			custom_base_url = getattr(self.config, "custom_base_url", None)
+			custom_api_key = getattr(self.config, "custom_api_key", None)
 
-			# Format request based on model type
+			# Prepare messages based on provider
 			if provider == "anthropic":
 				messages = [
 					{"role": msg["role"], "content": msg["content"]}
 					for msg in self.prompt
 					if msg["role"] in ["user", "assistant"]
 				]
-				response = call_litellm_completion(
-					model=f"anthropic/{model_id}",
-					messages=messages,
-					max_tokens=self.max_tokens,
-					response_format={"type": "json_object"},
-				)
-			elif provider == "gemini":
-				response = call_litellm_completion(
-					model=f"gemini/{model_id}",
-					messages=[{"role": "user", "content": self.prompt[-1]["content"]}],
-					max_tokens=self.max_tokens,
-					temperature=0.8,
-					response_format={"type": "json_object"},
-				)
-			elif provider == "meta":
-				response = call_litellm_completion(
-					model=model_id,
-					messages=[{"role": "user", "content": self.prompt[-1]["content"]}],
-					max_tokens=self.max_tokens,
-					temperature=0.8,
-					top_p=0.9,
-				)
 			elif provider == "ollama":
-				ollama_base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-
 				improved_prompt = (
 					self.prompt[-1]["content"]
 					+ "\n\nIMPORTANT: output should be a valid JSON object with no extra text or description."
 				)
-
-				response = call_litellm_completion(
-					model=f"ollama/{model_id}",
-					messages=[{"role": "user", "content": improved_prompt}],
-					max_tokens=self.max_tokens,
-					temperature=0.8,
-					default_api_base=ollama_base_url,
-				)
-			elif provider == "tongyi":
-				response = litellm.completion(
-					model=f"openai/{model_id}",
-					messages=[{"role": "user", "content": self.prompt[-1]["content"]}],
-					max_tokens=self.max_tokens,
-					temperature=0.8,
-					api_base="https://dashscope.aliyuncs.com/compatible-mode/v1",
-					api_key=os.getenv("DASHSCOPE_API_KEY", ""),
-					response_format={"type": "json_object"},
-				)
-			elif provider == "zhipuai":
-				response = litellm.completion(
-					model=f"openai/{model_id}",
-					messages=[{"role": "user", "content": self.prompt[-1]["content"]}],
-					max_tokens=self.max_tokens,
-					temperature=0.8,
-					api_base="https://open.bigmodel.cn/api/paas/v4",
-					api_key=os.getenv("ZHIPUAI_API_KEY", ""),
-					response_format={"type": "json_object"},
-				)
-			elif provider == "deepseek":
-				response = litellm.completion(
-					model=f"deepseek/{model_id}",
-					messages=[{"role": "user", "content": self.prompt[-1]["content"]}],
-					max_tokens=self.max_tokens,
-					temperature=0.8,
-					api_key=os.getenv("DEEPSEEK_API_KEY", ""),
-					response_format={"type": "json_object"},
-				)
-			elif provider == "baidu":
-				response = litellm.completion(
-					model=f"openai/{model_id}",
-					messages=[{"role": "user", "content": self.prompt[-1]["content"]}],
-					max_tokens=self.max_tokens,
-					temperature=0.8,
-					api_base="https://qianfan.baidubce.com/v2",
-					api_key=os.getenv("QIANFAN_API_KEY", ""),
-					response_format={"type": "json_object"},
-				)
-			elif provider == "spark":
-				response = litellm.completion(
-					model=f"openai/{model_id}",
-					messages=[{"role": "user", "content": self.prompt[-1]["content"]}],
-					max_tokens=self.max_tokens,
-					temperature=0.8,
-					api_base="https://spark-api-open.xf-yun.com/v1",
-					api_key=os.getenv("SPARK_API_KEY", ""),
-					response_format={"type": "json_object"},
-				)
+				messages = [{"role": "user", "content": improved_prompt}]
 			else:
-				response = call_litellm_completion(
-					model=model_id,
-					messages=[{"role": "user", "content": self.prompt[-1]["content"]}],
-					max_tokens=self.max_tokens,
-					temperature=0.8,
-					response_format={"type": "json_object"},
-				)
+				messages = [{"role": "user", "content": self.prompt[-1]["content"]}]
 
-			return response
+			# Build kwargs
+			kwargs = {"messages": messages, "max_tokens": self.max_tokens}
+			if provider != "anthropic":
+				kwargs["temperature"] = 0.8
+			if provider not in ("meta", "ollama"):
+				kwargs["response_format"] = {"type": "json_object"}
+			if provider == "meta":
+				kwargs["top_p"] = 0.9
+
+			return _route_llm_call(provider, model_id, custom_base_url, custom_api_key, **kwargs)
 
 		except Exception as e:
 			logger.error(f"Error invoking LLM {model_id}: {str(e)}")
 			raise Exception(f"Error invoking LLM {model_id}: {str(e)}")
-
 	def call(self) -> tuple[dict, float]:
 		startTime = time.time()
 		response = self.query_llm()
@@ -1197,11 +1109,6 @@ class LLMExtractor:
 		self.llm_response, self.response_time = LLMCaller(self.config, self.prompt).call()
 
 		self.output = ResponseParser(self).parse()
-
-		if self.config.model == "LLaMA" or self.config.model == "QWen":
-			self.promptID = str(int(round(time.time() * 1000)))
-		else:
-			self.promptID = self.llm_response.id[-3:]
 
 		outJSON = {}
 		outJSON["text"] = self.output["CTI"]
@@ -1474,6 +1381,10 @@ class DemoRetriever:
 
 
 def extract_json_from_response(response_text):
+	if response_text is None:
+		logger.warning("LLM returned None response content")
+		raise ValueError("LLM returned empty response")
+
 	if isinstance(response_text, str):
 		cleaned_text = response_text.strip()
 
