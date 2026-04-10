@@ -270,5 +270,89 @@
     "spark-lite": {
         "input": 0,
         "output": 0
+    },
+    "moonshot-v1-8k": {
+        "input": 0.00000017,
+        "output": 0.00000017
+    },
+    "moonshot-v1-32k": {
+        "input": 0.00000034,
+        "output": 0.00000034
+    },
+    "moonshot-v1-128k": {
+        "input": 0.00000084,
+        "output": 0.00000084
+    },
+    "abab6.5s-chat": {
+        "input": 0.00000014,
+        "output": 0.00000014
+    },
+    "abab6.5t-chat": {
+        "input": 0.00000007,
+        "output": 0.00000007
+    },
+    "abab5.5-chat": {
+        "input": 0.00000002,
+        "output": 0.00000002
+    },
+    "embo-01": {
+        "input": 0.000000007,
+        "output": 0
+    },
+    "step-2-16k": {
+        "input": 0.00000056,
+        "output": 0.00000196
+    },
+    "step-1-128k": {
+        "input": 0.00000021,
+        "output": 0.0000007
+    },
+    "step-1-32k": {
+        "input": 0.0000001,
+        "output": 0.00000035
+    },
+    "step-1-flash": {
+        "input": 0.000000014,
+        "output": 0.000000028
+    },
+    "step-emb-v1": {
+        "input": 0.000000007,
+        "output": 0
+    },
+    "Baichuan4": {
+        "input": 0.0000014,
+        "output": 0.0000014
+    },
+    "Baichuan3-Turbo": {
+        "input": 0.00000017,
+        "output": 0.00000017
+    },
+    "Baichuan3-Turbo-128k": {
+        "input": 0.00000035,
+        "output": 0.00000035
+    },
+    "Baichuan-Text-Embedding": {
+        "input": 0.000000007,
+        "output": 0
+    },
+    "SenseNova-V6": {
+        "input": 0.00000056,
+        "output": 0.00000157
+    },
+    "SenseChat-V4": {
+        "input": 0.00000014,
+        "output": 0.00000014
+    },
+    "yi-large": {
+        "input": 0.0000028,
+        "output": 0.0000028
+    },
+    "yi-medium": {
+        "input": 0.00000035,
+        "output": 0.00000035
+    },
+    "yi-spark": {
+        "input": 0.000000014,
+        "output": 0.000000014
     }
 }

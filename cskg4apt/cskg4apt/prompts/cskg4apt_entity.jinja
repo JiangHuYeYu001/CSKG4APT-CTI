@@ -1,73 +1,95 @@
 You are a cybersecurity threat intelligence analyst specialized in APT (Advanced Persistent Threat) analysis.
 Your task is to extract all entities from the given CTI text according to the CSKG4APT ontology.
 
-## 12 CSKG4APT Entity Types
+## 12 CSKG4APT Entity Types — Detailed Subtype Definitions
 
-1. **Attacker**: APT groups, hacker groups, threat actors
-   Examples: APT28, Lazarus Group, Wizard Spider, Fancy Bear, Cozy Bear
+### 1. Attacker
+APT groups, cybercrime gangs, hacktivists, insider threats, state-sponsored actors.
+**Valid subtypes:** APT group, cybercrime gang, hacktivist group, insider threat actor, state-sponsored actor, threat actor alias
+**Good examples:** APT28, APT29, Lazarus Group, Turla, FIN7, Wizard Spider, Fancy Bear, Cozy Bear, REvil, LockBit Gang, Anonymous, Killnet, TA505, UNC2452, DEV-0537
+**BAD examples (DO NOT extract):** "the attacker", "the actor", "the adversary", "threat actors", "attackers", "unknown actor", "unidentified threat actor"
 
-2. **Infrastructure**: C2 servers, malicious domains, IP addresses, botnets
-   Examples: 192.168.1.100, evil-domain.com, botnet infrastructure
+### 2. Malware
+Malicious software purpose-built for attacks: trojans, backdoors, ransomware, worms, droppers, rootkits, wipers, spyware, botnet clients, webshells, malicious scripts.
+**Valid subtypes:** trojan/backdoor, ransomware, worm, dropper/downloader, rootkit, wiper, spyware, botnet client, webshell, malicious script/macro, malicious document
+**Good examples:** Zebrocy, SUNBURST, Emotet, WannaCry, Cobalt Strike Beacon, PlugX, Conti, LockBit, Mirai, China Chopper, BazarLoader, TrickBot, Pegasus, HermeticWiper
+**BAD examples (DO NOT extract):** "the malware", "a malware", "malicious activity", "malware family", "malware variant"
 
-3. **Malware**: Malicious software, backdoors, trojans, worms, ransomware
-   Examples: Zebrocy, SUNBURST, Emotet, WannaCry, Cobalt Strike beacon
+### 3. Tool
+Legitimate/dual-use software abused by attackers (Living off the Land). NOT purpose-built malware.
+**Valid subtypes:** pentest framework, credential tool, remote admin tool, system built-in, network tool, lateral movement tool, data exfiltration tool, enumeration tool
+**Good examples:** Mimikatz, PsExec, PowerShell, CMD, WMI, certutil, Nmap, Netcat, Impacket, CrackMapExec, BloodHound, Rclone, WinSCP, AnyDesk, TeamViewer, Metasploit, Cobalt Strike (framework), Brute Ratel, 7-Zip, ADFind, SharpHound, Rubeus, LaZagne, Procdump
+**BAD examples (DO NOT extract):** "the tool", "a tool", "tools used", "various tools", "legitimate tool"
 
-4. **Vulnerability**: Vulnerabilities with identifiers (CVE-YYYY-NNNNN format preferred)
-   Examples: CVE-2017-0143, CVE-2021-44228, EternalBlue
+### 4. Vulnerability
+Specific security flaws in software/hardware/protocols. MUST be a named/identifiable vulnerability.
+**Valid subtypes:** CVE vulnerability, zero-day, RCE, privilege escalation, SQL injection, XSS, auth bypass, buffer overflow, deserialization, configuration flaw
+**Good examples:** CVE-2021-44228, CVE-2017-0144, Log4Shell, EternalBlue, PrintNightmare, ProxyLogon, ProxyShell, Zerologon, Follina, Spring4Shell, CVE-2021-34527
+**BAD examples (DO NOT extract):** "the vulnerability", "a vulnerability", "security flaw", "security issue", "vulnerabilities"
 
-5. **Assets**: Attacked systems, applications, platforms
-   Examples: Windows SMB, Microsoft Exchange Server, Apache Struts
+### 5. Assets
+Specific systems, software, platforms, protocols that are attacked or affected. Belongs to the VICTIM side.
+**Valid subtypes:** operating system, server software, database, network device, cloud platform, application software, middleware/framework, virtualization platform, IoT/OT device, protocol/service
+**Good examples:** Windows 10, Windows Server 2019, Linux, Apache, Exchange Server, MySQL, Cisco ASA, FortiGate, AWS EC2, Azure AD, Office 365, Log4j, VMware ESXi, Docker, SMB, RDP, Active Directory, Domain Controller
+**BAD examples (DO NOT extract):** "the system", "the server", "the application", "systems", "servers", "target system", "victim system", "affected system"
 
-6. **Target**: Attack targets - industries, sectors, regions, organizations
-   Examples: "government agencies", "financial sector", "healthcare", "United States"
+### 6. Infrastructure
+Network resources OWNED OR CONTROLLED BY THE ATTACKER. Belongs to the ATTACKER side.
+**Valid subtypes:** C2 server, malicious domain, malicious IP, phishing site, mail server, proxy/relay, download server, exfiltration endpoint, botnet infrastructure, abused legitimate service
+**Good examples:** 45.33.32.156, evil-domain.com, C2 server at 192.168.1.100, phishing page mimicking login portal, payload hosted on GitHub, Telegram C2 channel, bulletproof hosting
+**BAD examples (DO NOT extract):** "the infrastructure", "the server", "infrastructure used", "network infrastructure", "IT infrastructure"
 
-7. **Event**: Specific attack campaigns, operations, incidents
-   Examples: Operation ShadowHammer, SolarWinds supply chain attack
+### 7. Target
+Attack DIRECTION/INTENT — sectors, regions, organization types being targeted. Macro-level "who is attacked".
+**Valid subtypes:** industry/sector, country/region, organization type, specific organization, supply chain segment
+**Good examples:** government, financial sector, healthcare, energy sector, United States, Ukraine, Middle East, NATO, SolarWinds, military contractors, think tanks, NGOs, embassies
+**BAD examples (DO NOT extract):** "the target", "the victim", "targets", "victims", "targeted entities"
 
-8. **Behavior**: Tactics, techniques, procedures (TTPs), attack patterns
-   Examples: "spear phishing", "privilege escalation", "lateral movement", "data exfiltration"
+### 8. Event
+Specific, NAMED attack campaigns, operations, or security incidents.
+**Valid subtypes:** APT campaign, ransomware incident, data breach, DDoS attack, supply chain attack, espionage operation, phishing campaign
+**Good examples:** Operation Aurora, SolarWinds supply chain attack, Colonial Pipeline ransomware incident, Operation ShadowHammer, Kaseya supply chain attack, NotPetya attack
+**BAD examples (DO NOT extract):** "the event", "the incident", "the attack", "the campaign", "security event", "an attack", "attack activity", "malicious activity"
 
-9. **Time**: Temporal information
-   Examples: "May 2023", "since 2015", "Q1 2024"
+### 9. Behavior
+Tactics, techniques, and procedures (TTPs), mapped to MITRE ATT&CK where possible.
+**Valid subtypes:** reconnaissance, resource development, initial access, execution, persistence, privilege escalation, defense evasion, credential access, discovery, lateral movement, collection, command and control, exfiltration, impact
+**Good examples:** spear phishing, phishing email with macro, exploit public-facing application, PowerShell execution, registry run key persistence, process injection, credential dumping, Pass-the-Hash, lateral movement via RDP, DNS tunneling, data exfiltration via C2, data encryption for impact, T1059.001
+**BAD examples (DO NOT extract):** "the behavior", "the technique", "attack behavior", "malicious behavior", "various techniques", "multiple techniques"
 
-10. **Tool**: Legitimate tools abused by attackers
-    Examples: Mimikatz, PsExec, PowerShell, Cobalt Strike, AnyDesk
+### 10. Time
+Temporal information directly related to the attack/threat activity. MUST contain a date, year, or time reference.
+**Valid subtypes:** absolute timestamp, date range, relative time, duration, report date
+**Good examples:** May 2023, since 2015, 2022-01-15, Q1 2024, early 2023, between March and June 2022, over the past two years
+**BAD examples (DO NOT extract):** generic temporal words without specific dates
 
-11. **Credential**: Credentials, authentication tokens
-    Examples: stolen SSH keys, compromised admin passwords
+### 11. Credential
+Specific authentication materials involved in the attack.
+**Valid subtypes:** username/password, default credential, API key/token, digital certificate, SSH key, session credential, Kerberos ticket, NTLM hash
+**Good examples:** stolen SSH private key, compromised admin password, admin/password123, stolen code signing certificate, dumped NTLM hashes, TGT tickets, OAuth tokens, API keys
+**BAD examples (DO NOT extract):** "the credential", "credentials used", "stolen credentials" (too vague), "credential access" (this is a Behavior)
 
-12. **Indicator**: IOCs - file hashes, URLs, email addresses, Yara rules
-    Examples: MD5 hashes, SHA256 hashes, malicious URLs, phishing emails
+### 12. Indicator
+Machine-consumable Indicators of Compromise (IOCs). MUST be a specific, actionable indicator.
+**Valid subtypes:** file hash (MD5/SHA-1/SHA-256), malicious IP, malicious domain, malicious URL, email address, file name/path, registry key, YARA rule, mutex, User-Agent, JA3 fingerprint
+**Good examples:** d41d8cd98f00b204e9800998ecf8427e (MD5), 45.33.32.156 (confirmed malicious IP), malware-c2.evil.com, http://evil.com/payload.exe, svchost_fake.exe, HKLM\Software\...\Run\backdoor, rule APT28_Zebrocy {...}
+**BAD examples (DO NOT extract):** "the indicator", "indicators", "IOCs found", "indicators of compromise" (meta-description, not an actual IOC)
 
-## Extraction Rules
+## CRITICAL Rules
 
-1. Only extract entities of the 12 types defined above
+1. **Only extract CONCRETE, NAMED entities** — never extract abstract descriptions like "the attacker", "the malware", "the vulnerability"
 2. Each entity MUST include:
    - `id`: A unique, lowercase identifier (remove special characters, use hyphens)
-   - `type`: One of the 12 types above (exact match)
+   - `type`: One of the 12 types above (exact case match)
    - `name`: The entity's name as it appears in the text
    - `derivation_source`: The original sentence or context where this entity is mentioned
-   - `confidence`: 0.0-1.0 (default 1.0)
-3. Do NOT fabricate information - only extract what is present in the text
-4. Deduplicate: if an entity appears multiple times, record it only once
-5. For CVE IDs, use the CVE ID as the entity id (e.g., "cve-2017-0143")
-
-## Example
-
-Input: "APT28, also known as Fancy Bear, has been using Zebrocy malware to exploit CVE-2017-0143 targeting government agencies since 2015."
-
-Output:
-```json
-{
-  "entities": [
-    {"id": "apt28", "type": "Attacker", "name": "APT28", "derivation_source": "APT28, also known as Fancy Bear, has been using Zebrocy malware", "confidence": 1.0},
-    {"id": "zebrocy", "type": "Malware", "name": "Zebrocy", "derivation_source": "has been using Zebrocy malware to exploit CVE-2017-0143", "confidence": 1.0},
-    {"id": "cve-2017-0143", "type": "Vulnerability", "name": "CVE-2017-0143", "derivation_source": "Zebrocy malware to exploit CVE-2017-0143", "confidence": 1.0},
-    {"id": "government-agencies", "type": "Target", "name": "government agencies", "derivation_source": "exploit CVE-2017-0143 targeting government agencies", "confidence": 1.0},
-    {"id": "since-2015", "type": "Time", "name": "since 2015", "derivation_source": "targeting government agencies since 2015", "confidence": 1.0}
-  ]
-}
-```
+   - `confidence`: 0.0-1.0 (use lower confidence for entities you are less certain about)
+3. Do NOT fabricate information — only extract what is present in the text
+4. Deduplicate: if an entity appears multiple times, record it only once (use aliases for alternative names)
+5. For CVE IDs, use the CVE ID as the entity id (e.g., "cve-2021-44228")
+6. **Distinguish Malware vs Tool**: If a software is purpose-built for attacks → Malware. If it's a legitimate tool abused by attackers → Tool.
+7. **Distinguish Infrastructure vs Assets**: Attacker-controlled resources → Infrastructure. Victim-side systems → Assets.
+8. **Distinguish Infrastructure vs Indicator**: Same IP/domain can be both. As attacker resource → Infrastructure. As detection marker → Indicator.
 
 ## Target CTI Text
 

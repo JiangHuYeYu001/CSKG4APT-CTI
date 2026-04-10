@@ -2,33 +2,64 @@ You are a cybersecurity threat intelligence analyst. Extract relations between t
 
 ## 7 CSKG4APT Relation Types and Type Constraints
 
-1. **has**: Attacker -[has]-> Malware
-   Meaning: Attacker possesses or developed the malware
-   Example: APT28 -[has]-> Zebrocy
+### 1. has
+Meaning: An entity possesses, owns, or is associated with another entity.
+Valid source → target pairs:
+- **Attacker → Malware**: Attacker possesses or developed the malware (e.g., APT28 -[has]-> Zebrocy)
+- **Attacker → Credential**: Attacker holds stolen credentials (e.g., APT29 -[has]-> stolen SSH keys)
+- **Attacker → Indicator**: Attacker associated with IOCs (e.g., Lazarus -[has]-> MD5 hash abc123)
+- **Malware → Indicator**: Malware has IOC signatures (e.g., Emotet -[has]-> SHA256 hash)
+- **Malware → Behavior**: Malware exhibits TTP characteristics (e.g., TrickBot -[has]-> credential dumping)
+- **Infrastructure → Indicator**: Infrastructure associated with IOCs (e.g., C2 server -[has]-> IP address)
+- **Event → Time**: Event has a timestamp (e.g., SolarWinds attack -[has]-> December 2020)
+- **Event → Indicator**: Event associated with IOCs (e.g., Campaign X -[has]-> file hash)
 
-2. **uses**: Attacker -[uses]-> Tool
-   Meaning: Attacker uses a legitimate tool
-   Example: APT28 -[uses]-> Mimikatz
+### 2. uses
+Meaning: An entity utilizes another entity as a resource or instrument.
+Valid source → target pairs:
+- **Attacker → Tool**: Attacker uses legitimate tools (e.g., APT28 -[uses]-> Mimikatz)
+- **Attacker → Credential**: Attacker uses stolen credentials (e.g., APT29 -[uses]-> admin password)
+- **Malware → Tool**: Malware invokes legitimate tools (e.g., Emotet -[uses]-> PowerShell)
+- **Malware → Infrastructure**: Malware connects to C2 infrastructure (e.g., SUNBURST -[uses]-> C2 domain)
+- **Event → Tool**: Attack event involves tools (e.g., Campaign X -[uses]-> Cobalt Strike)
 
-3. **exploit**: Malware -[exploit]-> Vulnerability
-   Meaning: Malware exploits a vulnerability
-   Example: Zebrocy -[exploit]-> CVE-2017-0143
+### 3. exploit
+Meaning: An entity exploits/leverages a vulnerability.
+Valid source → target pairs:
+- **Malware → Vulnerability**: Malware exploits a vulnerability (e.g., WannaCry -[exploit]-> CVE-2017-0144)
+- **Attacker → Vulnerability**: Attacker directly exploits a vulnerability (e.g., APT28 -[exploit]-> CVE-2021-44228)
+- **Tool → Vulnerability**: Tool exploits a vulnerability (e.g., Metasploit -[exploit]-> CVE-2021-34527)
 
-4. **exist**: Vulnerability -[exist]-> Assets
-   Meaning: Vulnerability exists in a system/application
-   Example: CVE-2017-0143 -[exist]-> Windows SMB
+### 4. exist
+Meaning: An entity exists within / is present in another entity.
+Valid source → target pairs:
+- **Vulnerability → Assets**: Vulnerability exists in a system (e.g., CVE-2021-44228 -[exist]-> Log4j)
+- **Malware → Assets**: Malware is present in / infects an asset (e.g., Emotet -[exist]-> Windows 10)
+- **Indicator → Assets**: IOC is found in an asset (e.g., malicious hash -[exist]-> Exchange Server)
 
-5. **target**: Attacker -[target]-> Target
-   Meaning: Attacker targets a sector or region
-   Example: APT28 -[target]-> government agencies
+### 5. target
+Meaning: An entity directs its attack toward a target.
+Valid source → target pairs:
+- **Attacker → Target**: Attacker targets a sector/region (e.g., APT29 -[target]-> government sector)
+- **Malware → Target**: Malware is designed for specific targets (e.g., Stuxnet -[target]-> industrial control systems)
+- **Event → Target**: Attack event targets specific victims (e.g., SolarWinds attack -[target]-> US government)
+- **Attacker → Assets**: Attacker targets specific systems (e.g., APT28 -[target]-> Exchange Server)
+- **Malware → Assets**: Malware targets specific platforms (e.g., Mirai -[target]-> IoT devices)
 
-6. **medium**: Attacker -[medium]-> Infrastructure
-   Meaning: Attacker uses specific infrastructure
-   Example: APT28 -[medium]-> 192.168.1.100
+### 6. medium
+Meaning: An entity uses infrastructure as a communication/delivery medium.
+Valid source → target pairs:
+- **Attacker → Infrastructure**: Attacker uses infrastructure (e.g., APT28 -[medium]-> 192.168.1.100)
+- **Malware → Infrastructure**: Malware communicates via infrastructure (e.g., Cobalt Strike Beacon -[medium]-> C2 domain)
+- **Event → Infrastructure**: Attack event involves infrastructure (e.g., Campaign X -[medium]-> phishing domain)
 
-7. **behavior**: Event -[behavior]-> Behavior
-   Meaning: An event/campaign involves specific tactics
-   Example: Operation X -[behavior]-> data exfiltration
+### 7. behavior
+Meaning: An entity exhibits or employs a tactic/technique/procedure.
+Valid source → target pairs:
+- **Event → Behavior**: Event involves specific TTPs (e.g., Operation Aurora -[behavior]-> spear phishing)
+- **Attacker → Behavior**: Attacker employs TTPs (e.g., APT29 -[behavior]-> supply chain compromise)
+- **Malware → Behavior**: Malware exhibits behaviors (e.g., Emotet -[behavior]-> process injection)
+- **Tool → Behavior**: Tool is associated with behaviors (e.g., Mimikatz -[behavior]-> credential dumping)
 
 ## Extracted Entities
 
@@ -40,9 +71,10 @@ You are a cybersecurity threat intelligence analyst. Extract relations between t
 
 1. Only create relations between entities from the list above
 2. Only use the 7 defined relation types
-3. Follow the source->target type constraints (e.g., "has" must be Attacker->Malware)
+3. **STRICTLY follow the source→target type constraints** listed above — if a (source_type, target_type) pair is not listed for a relation type, DO NOT create that relation
 4. `derivation_source` must contain context mentioning both source and target entities
 5. Do NOT fabricate relations not supported by the text
+6. When in doubt about which relation to use, prefer the most specific one
 
 ## Target CTI Text
 

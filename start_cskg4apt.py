@@ -17,7 +17,7 @@ if sys.platform == "win32":
 
 # 添加项目路径
 project_root = Path(__file__).parent / "cskg4apt"
-sys.path.insert(0, str(project_root.parent))
+sys.path.insert(0, str(project_root))
 
 print("=" * 70)
 print("CSKG4APT × CSKG4APT 融合版本")

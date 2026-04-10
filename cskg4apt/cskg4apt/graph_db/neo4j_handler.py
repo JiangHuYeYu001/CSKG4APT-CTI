@@ -49,8 +49,8 @@ class Neo4jHandler:
 		if self.driver:
 			try:
 				self.driver.close()
-			except Exception:
-				pass
+			except Exception as e:
+				logger.debug(f"Error closing Neo4j driver: {e}")
 			self.driver = None
 			self._available = False
 

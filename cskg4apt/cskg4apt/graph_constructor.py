@@ -448,8 +448,8 @@ def _strip_type_suffix(text: str) -> str:
 
 # Visualization styling constants
 _VIS_CONFIG = {
-	"background_color": "#27272a",
-	"font_color": "#ffffff",
+	"background_color": "#0a0a0a",
+	"font_color": "#00ff88",
 	"stroke_color": "#000000",
 	"node_font_size": 18,
 	"edge_font_size": 16,
@@ -462,30 +462,30 @@ _VIS_CONFIG = {
 	"spring_edge_multiplier": 12,
 	"spring_node_multiplier": 10,
 	"gravitational_constant": -8000,
-	"extracted_edge_color": "#666666",
+	"extracted_edge_color": "#00cc66",
 	"predicted_edge_color": "#ff4444",
 }
 
-# Entity type to color mapping
+# Entity type to color mapping — bright, high-contrast on dark background
 _ENTITY_COLORS = {
 	# CSKG4APT original types
-	"Malware": "#ff4444",
-	"Tool": "#44ff44",
-	"Event": "#4444ff",
-	"Organization": "#ffaa44",
-	"Time": "#aa44ff",
-	"Information": "#44ffff",
-	"Indicator": "#ff44ff",
-	"Indicator:File": "#ff44ff",
+	"Malware": "#ff3333",
+	"Tool": "#33ff99",
+	"Event": "#3399ff",
+	"Organization": "#ff9933",
+	"Time": "#cc66ff",
+	"Information": "#33ffff",
+	"Indicator": "#ff66ff",
+	"Indicator:File": "#ff66ff",
 	# CSKG4APT types
 	"Attacker": "#ff6600",
 	"Infrastructure": "#00ccff",
-	"Vulnerability": "#ffcc00",
-	"Assets": "#88cc88",
-	"Target": "#cc4488",
-	"Behavior": "#8844cc",
-	"Credential": "#ccaa44",
-	"default": "#aaaaaa",
+	"Vulnerability": "#ffdd00",
+	"Assets": "#66dd66",
+	"Target": "#ff6699",
+	"Behavior": "#aa66ff",
+	"Credential": "#ffaa33",
+	"default": "#88aa88",
 }
 
 
@@ -649,22 +649,22 @@ def create_graph_visualization(result: dict) -> str:
 			html_content = f.read()
 
 		legend_html = f"""
-        <div style="position: fixed; top: 50px; right: 20px; background-color: {cfg["background_color"]}; color: white; padding: 15px; border-radius: 8px; border: 1px solid #444; max-width: 200px; font-size: 15px;">
-            <h3 style="margin-top: 0; font-size: 18px;">Legend</h3>
-            <h4 style="margin-bottom: 5px; font-size: 15px;">Node Types:</h4>
+        <div style="position: fixed; top: 50px; right: 20px; background-color: {cfg["background_color"]}; color: #00ff88; padding: 15px; border-radius: 8px; border: 1px solid #1a3a1a; max-width: 200px; font-size: 15px;">
+            <h3 style="margin-top: 0; font-size: 18px; color: #00ff88;">Legend</h3>
+            <h4 style="margin-bottom: 5px; font-size: 15px; color: #00cc66;">Node Types:</h4>
             <ul style="list-style: none; padding: 0; margin-bottom: 15px;">
         """
 
 		for entity_type, color in _ENTITY_COLORS.items():
-			legend_html += f"<li style='margin-bottom: 5px;'><span style='display: inline-block; width: 15px; height: 15px; background-color: {color}; margin-right: 10px; border-radius: 50%;'></span>{entity_type.capitalize()}</li>"
+			legend_html += f"<li style='margin-bottom: 5px; color: #c0c0c0;'><span style='display: inline-block; width: 15px; height: 15px; background-color: {color}; margin-right: 10px; border-radius: 50%;'></span>{entity_type.capitalize()}</li>"
 
 		legend_html += f"""
             </ul>
             <br>
-            <h4 style="margin-bottom: 5px; font-size: 15px;">Edge Types:</h4>
+            <h4 style="margin-bottom: 5px; font-size: 15px; color: #00cc66;">Edge Types:</h4>
             <ul style="list-style: none; padding: 0;">
-            <li style='margin-bottom: 5px;'><span style='display: inline-block; width: 20px; height: 2px; background-color: {cfg["extracted_edge_color"]}; margin-right: 10px;'></span>Extracted</li>
-            <li style='margin-bottom: 5px;'><span style='display: inline-block; width: 20px; height: 2px; background-color: {cfg["predicted_edge_color"]}; margin-right: 10px;'></span>Predicted</li>
+            <li style='margin-bottom: 5px; color: #c0c0c0;'><span style='display: inline-block; width: 20px; height: 2px; background-color: {cfg["extracted_edge_color"]}; margin-right: 10px;'></span>Extracted</li>
+            <li style='margin-bottom: 5px; color: #c0c0c0;'><span style='display: inline-block; width: 20px; height: 2px; background-color: {cfg["predicted_edge_color"]}; margin-right: 10px;'></span>Predicted</li>
             </ul>
         </div>
         """
@@ -815,13 +815,13 @@ def create_cskg4apt_graph_visualization(kg_dict: dict) -> tuple:
 
 		# Color edges by relation type
 		relation_colors = {
-			"has": "#ff6600",
-			"uses": "#44ff44",
-			"exploit": "#ff4444",
-			"exist": "#ffcc00",
-			"target": "#cc4488",
+			"has": "#00ff88",
+			"uses": "#33ff99",
+			"exploit": "#ff3333",
+			"exist": "#ffdd00",
+			"target": "#ff6699",
 			"medium": "#00ccff",
-			"behavior": "#8844cc",
+			"behavior": "#aa66ff",
 		}
 
 		net.add_edge(
@@ -848,38 +848,38 @@ def create_cskg4apt_graph_visualization(kg_dict: dict) -> tuple:
 			html_content = f.read()
 
 		legend_html = f"""
-        <div style="position: fixed; top: 50px; right: 20px; background-color: {cfg["background_color"]}; color: white; padding: 15px; border-radius: 8px; border: 1px solid #444; max-width: 220px; font-size: 14px;">
-            <h3 style="margin-top: 0; font-size: 16px;">CSKG4APT Legend</h3>
-            <h4 style="margin-bottom: 5px; font-size: 14px;">Entity Types:</h4>
+        <div style="position: fixed; top: 50px; right: 20px; background-color: {cfg["background_color"]}; color: #00ff88; padding: 15px; border-radius: 8px; border: 1px solid #1a3a1a; max-width: 220px; font-size: 14px;">
+            <h3 style="margin-top: 0; font-size: 16px; color: #00ff88;">CSKG4APT Legend</h3>
+            <h4 style="margin-bottom: 5px; font-size: 14px; color: #00cc66;">Entity Types:</h4>
             <ul style="list-style: none; padding: 0; margin-bottom: 10px;">
         """
 
 		cskg4apt_colors = {
 			"Attacker": "#ff6600",
 			"Infrastructure": "#00ccff",
-			"Malware": "#ff4444",
-			"Vulnerability": "#ffcc00",
-			"Assets": "#88cc88",
-			"Target": "#cc4488",
-			"Event": "#4444ff",
-			"Behavior": "#8844cc",
-			"Time": "#aa44ff",
-			"Tool": "#44ff44",
-			"Credential": "#ccaa44",
-			"Indicator": "#ff44ff",
+			"Malware": "#ff3333",
+			"Vulnerability": "#ffdd00",
+			"Assets": "#66dd66",
+			"Target": "#ff6699",
+			"Event": "#3399ff",
+			"Behavior": "#aa66ff",
+			"Time": "#cc66ff",
+			"Tool": "#33ff99",
+			"Credential": "#ffaa33",
+			"Indicator": "#ff66ff",
 		}
 
 		for entity_type, color in cskg4apt_colors.items():
-			legend_html += f"<li style='margin-bottom: 3px;'><span style='display: inline-block; width: 12px; height: 12px; background-color: {color}; margin-right: 8px; border-radius: 50%;'></span>{entity_type}</li>"
+			legend_html += f"<li style='margin-bottom: 3px; color: #c0c0c0;'><span style='display: inline-block; width: 12px; height: 12px; background-color: {color}; margin-right: 8px; border-radius: 50%;'></span>{entity_type}</li>"
 
 		legend_html += """
             </ul>
-            <h4 style="margin-bottom: 5px; font-size: 14px;">Relation Types:</h4>
+            <h4 style="margin-bottom: 5px; font-size: 14px; color: #00cc66;">Relation Types:</h4>
             <ul style="list-style: none; padding: 0;">
         """
 
 		for rel_type, color in relation_colors.items():
-			legend_html += f"<li style='margin-bottom: 3px;'><span style='display: inline-block; width: 16px; height: 2px; background-color: {color}; margin-right: 8px;'></span>{rel_type}</li>"
+			legend_html += f"<li style='margin-bottom: 3px; color: #c0c0c0;'><span style='display: inline-block; width: 16px; height: 2px; background-color: {color}; margin-right: 8px;'></span>{rel_type}</li>"
 
 		legend_html += """
             </ul>

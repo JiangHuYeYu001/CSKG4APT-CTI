@@ -19,6 +19,8 @@ __all__ = [
 	"CSKG4APTGraph",
 	"CSKGEntity",
 	"CSKGRelation",
+	"validate_entity_name",
+	"validate_relation_types",
 ]
 
 

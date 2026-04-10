@@ -33,7 +33,7 @@ def get_metrics_box(
 	lp_metrics: str = "",
 ):
 	"""Generate metrics box HTML with optional metrics values"""
-	return f'<div class="shadowbox"><table style="width: 100%; text-align: center; border-collapse: collapse;"><tr><th style="width: 25%; border-bottom: 1px solid var(--block-border-color);">Intelligence Extraction</th><th style="width: 25%; border-bottom: 1px solid var(--block-border-color);">Entity Tagging</th><th style="width: 25%; border-bottom: 1px solid var(--block-border-color);">Entity Alignment</th><th style="width: 25%; border-bottom: 1px solid var(--block-border-color);">Link Prediction</th></tr><tr><td>{ie_metrics or ""}</td><td>{et_metrics or ""}</td><td>{ea_metrics or ""}</td><td>{lp_metrics or ""}</td></tr></table></div>'
+	return f'<div class="shadowbox"><table style="width: 100%; text-align: center; border-collapse: collapse;"><tr><th style="width: 25%; border-bottom: 1px solid var(--block-border-color);">情报提取</th><th style="width: 25%; border-bottom: 1px solid var(--block-border-color);">实体标注</th><th style="width: 25%; border-bottom: 1px solid var(--block-border-color);">实体对齐</th><th style="width: 25%; border-bottom: 1px solid var(--block-border-color);">链接预测</th></tr><tr><td>{ie_metrics or ""}</td><td>{et_metrics or ""}</td><td>{ea_metrics or ""}</td><td>{lp_metrics or ""}</td></tr></table></div>'
 
 
 def run_intel_extraction(config: DictConfig, text: str = None) -> dict:
@@ -70,6 +70,7 @@ def run_link_prediction(config: DictConfig, result) -> dict:
 
 def run_cskg4apt_pipeline(
 	text: str = None,
+	source_url: str = None,
 	model: str = None,
 	enable_diamond_model: bool = True,
 	enable_threat_card: bool = True,
@@ -83,7 +84,7 @@ def run_cskg4apt_pipeline(
 	progress_callback = _get_progress_callback(progress)
 
 	if not text or not text.strip():
-		return "Error: No text content provided. Please paste CTI text or upload a PDF file."
+		return "Error: 未提供文本内容，请粘贴 CTI 文本或上传 PDF 文件。"
 
 	try:
 		# CSKG4APT extraction
@@ -171,10 +172,10 @@ def run_pipeline(
 	progress_callback = _get_progress_callback(progress)
 
 	if not text and not source_url:
-		return "Error: Please enter CTI text or provide a report URL."
+		return "Error: 请输入 CTI 文本或提供报告链接。"
 
 	if source_url and not is_valid_source_url(source_url):
-		return "Error: Invalid URL format. Please provide a valid http/https URL."
+		return "Error: 链接格式无效，请提供有效的 http/https 链接。"
 
 	try:
 		url_source_result = None
@@ -191,7 +192,7 @@ def run_pipeline(
 			text = url_source_result.get("final_text") or url_source_result.get("normalized_text")
 
 		if not text:
-			return "Error: No usable report content was found from the URL source."
+			return "Error: 无法从该链接获取可用的报告内容。"
 
 		config = get_config(ie_model, None, None)
 		progress_callback(0.2, desc="Intelligence Extraction...")
@@ -235,7 +236,7 @@ def process_and_visualize(
 	custom_embedding_model_input=None,
 	progress=None,
 ):
-	if input_source == "CTI Report URL":
+	if input_source == "CTI 报告链接":
 		text = None
 	else:
 		source_url = None
@@ -265,8 +266,8 @@ def process_and_visualize(
 		graph_url, _ = create_graph_visualization(result_dict)
 		graph_html_content = f"""
         <div style="text-align: center; padding: 10px; margin-top: -20px;">
-            <h2 style="margin-bottom: 0.5em;">Entity Relationship Graph</h2>
-            <em>Drag nodes • Scroll to zoom • Drag background to pan</em>
+            <h2 style="margin-bottom: 0.5em; color: #00ff88;">实体关系图谱</h2>
+            <em style="color: #5a8a5a;">拖拽节点 / 滚轮缩放 / 拖拽背景平移</em>
         </div>
         <div id="iframe-container"">
             <iframe src="{graph_url}"
@@ -278,8 +279,8 @@ def process_and_visualize(
             </iframe>
         </div>
         <div style="text-align: center; ">
-            <a href="{graph_url}" target="_blank" style="color: #7c4dff; text-decoration: none;">
-            🚀 Open in New Tab
+            <a href="{graph_url}" target="_blank" style="color: #00ff88; text-decoration: none;">
+            在新标签页打开
             </a>
         </div>"""
 
@@ -346,14 +347,14 @@ def process_and_visualize_cskg4apt(
 ):
 	"""Process CSKG4APT pipeline and create visualization."""
 	# Resolve input: PDF upload or direct text
-	if input_source == "Upload PDF":
+	if input_source == "上传 PDF":
 		if not pdf_file:
-			return "Error: Please upload a PDF file.", None, "{}", "{}"
+			return "Error: 请上传 PDF 文件。", None, "{}", "{}"
 		try:
 			file_path = pdf_file.name if hasattr(pdf_file, "name") else str(pdf_file)
 			text = extract_text_from_pdf(file_path)
 			if not text or not text.strip():
-				return "Error: Could not extract text from the PDF file.", None, "{}", "{}"
+				return "Error: 无法从 PDF 文件中提取文本。", None, "{}", "{}"
 		except ImportError as e:
 			return f"Error: {e}", None, "{}", "{}"
 		except Exception as e:
@@ -387,8 +388,8 @@ def process_and_visualize_cskg4apt(
 		if graph_url:
 			graph_html = f"""
 			<div style="text-align: center; padding: 10px; margin-top: -20px;">
-				<h2 style="margin-bottom: 0.5em;">CSKG4APT Knowledge Graph</h2>
-				<em>Drag nodes / Scroll to zoom / Drag background to pan</em>
+				<h2 style="margin-bottom: 0.5em; color: #00ff88;">CSKG4APT 知识图谱</h2>
+				<em style="color: #5a8a5a;">拖拽节点 / 滚轮缩放 / 拖拽背景平移</em>
 			</div>
 			<div id="iframe-container">
 				<iframe src="{graph_url}"
@@ -397,8 +398,8 @@ def process_and_visualize_cskg4apt(
 				</iframe>
 			</div>
 			<div style="text-align: center;">
-				<a href="{graph_url}" target="_blank" style="color: #7c4dff; text-decoration: none;">
-				Open in New Tab
+				<a href="{graph_url}" target="_blank" style="color: #00ff88; text-decoration: none;">
+				在新标签页打开
 				</a>
 			</div>"""
 
@@ -484,7 +485,7 @@ def build_interface(warning: str = None):
 		shadow_drop_lg="0 0 20px rgba(0, 255, 136, 0.12)",
 	)
 
-	with gr.Blocks(title="CSKG4APT - Cyber Threat Knowledge Graph", theme=cyber_theme, css="""
+	with gr.Blocks(title="CSKG4APT - 网络安全威胁知识图谱", theme=cyber_theme, css="""
 		/* Global cyber styling */
 		.gradio-container {
 			max-width: 1400px !important;
@@ -601,41 +602,73 @@ def build_interface(warning: str = None):
 		gr.HTML("""
 			<div class="cyber-header">
 				<h1>CSKG4APT</h1>
-				<div class="subtitle">CYBERSECURITY KNOWLEDGE GRAPH FOR APT ANALYSIS</div>
-				<div class="version-tag">v2.0 // LLM-Driven Threat Intelligence Platform</div>
+				<div class="subtitle">面向APT分析的网络安全知识图谱</div>
+				<div class="version-tag">v2.0 // 大语言模型驱动的威胁情报平台</div>
 			</div>
 		""")
 
 		if warning:
 			gr.Markdown(f"<div style='color: #ff6644; background: #1a1111; border: 1px solid #3a1a1a; border-radius: 6px; padding: 10px; text-align: center;'>{warning}</div>")
 
+		# ===== FEATURE INTRODUCTION =====
+		gr.HTML("""
+			<div style="display: flex; gap: 16px; margin: 16px 0; flex-wrap: wrap;">
+				<div style="flex: 1; min-width: 300px; background: linear-gradient(135deg, #0d1a0d 0%, #111a11 100%); border: 1px solid #1a3a1a; border-radius: 10px; padding: 20px;">
+					<div style="font-size: 1.1em; font-weight: 700; color: #00ff88; margin-bottom: 10px; border-bottom: 1px solid #1a3a1a; padding-bottom: 8px;">
+						APT 威胁分析
+					</div>
+					<div style="color: #b0b0b0; font-size: 0.85em; line-height: 1.7;">
+						<span style="color: #00cc66;">&#9654;</span> 基于 CSKG4APT 本体的<span style="color: #00ff88;">约束提取</span>模式<br>
+						<span style="color: #00cc66;">&#9654;</span> 严格遵循 <span style="color: #00ff88;">12 类实体 + 7 类关系</span> 定义<br>
+						<span style="color: #00cc66;">&#9654;</span> 支持 <span style="color: #00ff88;">钻石模型</span> 四维分析（对手/能力/设施/受害者）<br>
+						<span style="color: #00cc66;">&#9654;</span> 自动生成 <span style="color: #00ff88;">APT 威胁卡片</span> 和攻击链<br>
+						<span style="color: #00cc66;">&#9654;</span> 可选 Neo4j 图数据库持久化存储<br>
+						<span style="color: #5a8a5a; font-size: 0.8em; margin-top: 6px; display: block;">适用于：APT 组织归因、威胁情报结构化、攻击溯源</span>
+					</div>
+				</div>
+				<div style="flex: 1; min-width: 300px; background: linear-gradient(135deg, #0d1a0d 0%, #111a11 100%); border: 1px solid #1a3a1a; border-radius: 10px; padding: 20px;">
+					<div style="font-size: 1.1em; font-weight: 700; color: #00ff88; margin-bottom: 10px; border-bottom: 1px solid #1a3a1a; padding-bottom: 8px;">
+						通用 CTI 管线
+					</div>
+					<div style="color: #b0b0b0; font-size: 0.85em; line-height: 1.7;">
+						<span style="color: #00cc66;">&#9654;</span> 四阶段流水线：<span style="color: #00ff88;">情报提取 → 实体标注 → 实体对齐 → 链接预测</span><br>
+						<span style="color: #00cc66;">&#9654;</span> <span style="color: #00ff88;">无本体约束</span>，自由提取三元组关系<br>
+						<span style="color: #00cc66;">&#9654;</span> 每阶段可<span style="color: #00ff88;">独立选择不同模型</span><br>
+						<span style="color: #00cc66;">&#9654;</span> 支持 <span style="color: #00ff88;">URL 自动抓取</span> CTI 报告内容<br>
+						<span style="color: #00cc66;">&#9654;</span> 基于 Embedding 的实体消歧与合并<br>
+						<span style="color: #5a8a5a; font-size: 0.8em; margin-top: 6px; display: block;">适用于：通用威胁情报分析、开放式知识图谱构建</span>
+					</div>
+				</div>
+			</div>
+		""")
+
 		# ===== TABS =====
 		with gr.Tabs():
 			# ==================== TAB 1: CSKG4APT (PRIMARY) ====================
-			with gr.TabItem("APT Threat Analysis"):
-				gr.Markdown("<div class='section-title'>INPUT CONFIGURATION</div>")
+			with gr.TabItem("APT 威胁分析"):
+				gr.Markdown("<div class='section-title'>输入配置</div>")
 
 				with gr.Row():
 					with gr.Column(scale=2):
 						cskg_input_source = gr.Radio(
-							choices=["CTI Text", "Upload PDF"],
-							value="CTI Text",
-							label="Input Source",
+							choices=["CTI 文本", "上传 PDF"],
+							value="CTI 文本",
+							label="输入来源",
 						)
 						cskg_text_input = gr.Textbox(
-							label="Threat Intelligence Text",
-							placeholder="Paste CTI report content here for APT entity and relation extraction...",
+							label="威胁情报文本",
+							placeholder="在此粘贴 CTI 报告内容，系统将自动提取 APT 实体和关系...",
 							lines=12,
 							visible=True,
 						)
 						cskg_pdf_input = gr.File(
-							label="Upload PDF Report",
+							label="上传 PDF 报告",
 							file_types=[".pdf"],
 							visible=False,
 						)
 
 						def toggle_cskg_input(source_choice):
-							use_pdf = source_choice == "Upload PDF"
+							use_pdf = source_choice == "上传 PDF"
 							return gr.update(visible=not use_pdf), gr.update(visible=use_pdf)
 
 						cskg_input_source.change(
@@ -645,23 +678,23 @@ def build_interface(warning: str = None):
 						)
 
 					with gr.Column(scale=1):
-						gr.Markdown("<div class='section-title'>MODEL SETTINGS</div>")
+						gr.Markdown("<div class='section-title'>模型设置</div>")
 						cskg_provider = gr.Dropdown(
 							choices=list(MODELS.keys()) if MODELS else [],
-							label="AI Provider",
+							label="AI 服务商",
 							value="OpenAI" if "OpenAI" in MODELS else (list(MODELS.keys())[0] if MODELS else None),
 						)
 						_cskg_default_prov = "OpenAI" if "OpenAI" in MODELS else (list(MODELS.keys())[0] if MODELS else None)
 						cskg_model = gr.Dropdown(
 							choices=get_model_choices(_cskg_default_prov) + [("Other", "Other")]
 							if _cskg_default_prov else [],
-							label="Model",
+							label="模型",
 							value=get_model_choices(_cskg_default_prov)[0][1]
 							if _cskg_default_prov and get_model_choices(_cskg_default_prov) else None,
 						)
 						cskg_custom_model = gr.Textbox(
-							label="Custom Model Name",
-							placeholder="e.g. gpt-4o, deepseek-chat",
+							label="自定义模型名称",
+							placeholder="例如 gpt-4o, deepseek-chat",
 							visible=False,
 						)
 
@@ -675,49 +708,49 @@ def build_interface(warning: str = None):
 						cskg_provider.change(fn=update_cskg_models, inputs=[cskg_provider], outputs=[cskg_model])
 						cskg_model.change(fn=toggle_cskg_custom_model, inputs=[cskg_model], outputs=[cskg_custom_model])
 
-						gr.Markdown("<div class='section-title' style='margin-top:12px;'>ANALYSIS OPTIONS</div>")
-						cskg_diamond = gr.Checkbox(label="Diamond Model Analysis", value=True)
-						cskg_threat_card = gr.Checkbox(label="APT Threat Card Generation", value=True)
-						cskg_neo4j = gr.Checkbox(label="Neo4j Graph Persistence", value=False)
+						gr.Markdown("<div class='section-title' style='margin-top:12px;'>分析选项</div>")
+						cskg_diamond = gr.Checkbox(label="钻石模型分析", value=True)
+						cskg_threat_card = gr.Checkbox(label="APT 威胁卡片生成", value=True)
+						cskg_neo4j = gr.Checkbox(label="Neo4j 图数据库持久化", value=False)
 
 						with gr.Group(visible=False) as neo4j_config_group:
-							cskg_neo4j_uri = gr.Textbox(label="Neo4j URI", value="bolt://localhost:7687")
-							cskg_neo4j_user = gr.Textbox(label="Username", value="neo4j")
-							cskg_neo4j_pass = gr.Textbox(label="Password", type="password")
+							cskg_neo4j_uri = gr.Textbox(label="Neo4j 地址", value="bolt://localhost:7687")
+							cskg_neo4j_user = gr.Textbox(label="用户名", value="neo4j")
+							cskg_neo4j_pass = gr.Textbox(label="密码", type="password")
 
 						cskg_neo4j.change(fn=lambda x: gr.update(visible=x), inputs=[cskg_neo4j], outputs=[neo4j_config_group])
 
-						cskg_run_btn = gr.Button("EXECUTE ANALYSIS", variant="primary", elem_classes=["run-btn"])
+						cskg_run_btn = gr.Button("执行分析", variant="primary", elem_classes=["run-btn"])
 
-				gr.Markdown("<div class='section-title' style='margin-top:12px;'>EXTRACTION RESULTS</div>")
+				gr.Markdown("<div class='section-title' style='margin-top:12px;'>提取结果</div>")
 
 				with gr.Row():
 					with gr.Column(scale=1):
 						cskg_results = gr.Code(
-							label="Knowledge Graph JSON",
+							label="知识图谱 JSON",
 							language="json",
 							interactive=False,
 							show_line_numbers=False,
 						)
 					with gr.Column(scale=2):
 						cskg_graph = gr.HTML(
-							label="Knowledge Graph Visualization",
-							value='<div style="text-align: center; padding: 40px; color: #3a6b3a; border: 1px dashed #1a3a1a; border-radius: 8px;"><p style="font-size: 1.1em;">AWAITING INPUT</p><p style="font-size: 0.8em; color: #2a4a2a;">Click EXECUTE ANALYSIS to generate the APT knowledge graph</p></div>',
+							label="知识图谱可视化",
+							value='<div style="text-align: center; padding: 40px; color: #3a6b3a; border: 1px dashed #1a3a1a; border-radius: 8px;"><p style="font-size: 1.1em;">等待输入</p><p style="font-size: 0.8em; color: #2a4a2a;">点击「执行分析」生成 APT 知识图谱</p></div>',
 						)
 
-				gr.Markdown("<div class='section-title' style='margin-top:12px;'>THREAT INTELLIGENCE OUTPUT</div>")
+				gr.Markdown("<div class='section-title' style='margin-top:12px;'>威胁情报输出</div>")
 
 				with gr.Row():
 					with gr.Column():
 						cskg_threat_cards_output = gr.Code(
-							label="APT Threat Cards",
+							label="APT 威胁卡片",
 							language="json",
 							interactive=False,
 							show_line_numbers=False,
 						)
 					with gr.Column():
 						cskg_diamond_output = gr.Code(
-							label="Diamond Model Vertices",
+							label="钻石模型顶点",
 							language="json",
 							interactive=False,
 							show_line_numbers=False,
@@ -759,35 +792,35 @@ def build_interface(warning: str = None):
 				)
 
 			# ==================== TAB 2: GENERIC PIPELINE ====================
-			with gr.TabItem("Generic CTI Pipeline"):
-				gr.Markdown("<div class='section-title'>GENERIC KNOWLEDGE GRAPH EXTRACTION</div>")
+			with gr.TabItem("通用 CTI 管线"):
+				gr.Markdown("<div class='section-title'>通用知识图谱提取</div>")
 				gr.Markdown(
-					"Standard 4-stage pipeline: Intelligence Extraction -> Entity Tagging -> Entity Alignment -> Link Prediction",
+					"标准四阶段管线：情报提取 -> 实体标注 -> 实体对齐 -> 链接预测",
 					elem_classes=["note-text"],
 				)
 
 				with gr.Row():
 					with gr.Column():
 						input_source_selector = gr.Radio(
-							choices=["CTI Report URL", "CTI Text"],
-							value="CTI Report URL",
-							label="Input Source",
+							choices=["CTI 报告链接", "CTI 文本"],
+							value="CTI 报告链接",
+							label="输入来源",
 						)
 						url_input = gr.Textbox(
-							label="CTI Report URL",
+							label="CTI 报告链接",
 							placeholder="https://example.com/report",
 							lines=1,
 							visible=True,
 						)
 						text_input = gr.Textbox(
-							label="Input Threat Intelligence",
-							placeholder="Enter text for processing...",
+							label="输入威胁情报文本",
+							placeholder="输入待处理的威胁情报文本...",
 							lines=10,
 							visible=False,
 						)
 
 						def toggle_input_source(source_choice):
-							use_text_input = source_choice == "CTI Text"
+							use_text_input = source_choice == "CTI 文本"
 							return gr.update(visible=use_text_input), gr.update(visible=not use_text_input)
 
 						input_source_selector.change(
@@ -800,14 +833,14 @@ def build_interface(warning: str = None):
 							with gr.Column(scale=1):
 								provider_dropdown = gr.Dropdown(
 									choices=list(MODELS.keys()) if MODELS else [],
-									label="AI Provider",
+									label="AI 服务商",
 									value="OpenAI" if "OpenAI" in MODELS else (list(MODELS.keys())[0] if MODELS else None),
 								)
 							with gr.Column(scale=2):
 								ie_dropdown = gr.Dropdown(
 									choices=get_model_choices(provider_dropdown.value) + [("Other", "Other")]
 									if provider_dropdown.value else [],
-									label="Intelligence Extraction Model",
+									label="情报提取模型",
 									value=get_model_choices(provider_dropdown.value)[0][1]
 									if provider_dropdown.value and get_model_choices(provider_dropdown.value) else None,
 								)
@@ -815,7 +848,7 @@ def build_interface(warning: str = None):
 								et_dropdown = gr.Dropdown(
 									choices=get_model_choices(provider_dropdown.value) + [("Other", "Other")]
 									if provider_dropdown.value else [],
-									label="Entity Tagging Model",
+									label="实体标注模型",
 									value=get_model_choices(provider_dropdown.value)[0][1]
 									if provider_dropdown.value and get_model_choices(provider_dropdown.value) else None,
 								)
@@ -824,29 +857,29 @@ def build_interface(warning: str = None):
 								ea_dropdown = gr.Dropdown(
 									choices=get_embedding_model_choices(provider_dropdown.value) + [("Other", "Other")]
 									if provider_dropdown.value else [],
-									label="Entity Alignment Model",
+									label="实体对齐模型",
 									value=get_embedding_model_choices(provider_dropdown.value)[0][1]
 									if provider_dropdown.value and get_embedding_model_choices(provider_dropdown.value) else None,
 								)
 							with gr.Column(scale=1):
 								similarity_slider = gr.Slider(
 									minimum=0.0, maximum=1.0, value=0.6, step=0.05,
-									label="Alignment Threshold",
+									label="对齐阈值",
 								)
 							with gr.Column(scale=2):
 								lp_dropdown = gr.Dropdown(
 									choices=get_model_choices(provider_dropdown.value) + [("Other", "Other")]
 									if provider_dropdown.value else [],
-									label="Link Prediction Model",
+									label="链接预测模型",
 									value=get_model_choices(provider_dropdown.value)[0][1]
 									if provider_dropdown.value and get_model_choices(provider_dropdown.value) else None,
 								)
 
 						with gr.Row():
 							with gr.Column(scale=1):
-								custom_model_input = gr.Textbox(label="Custom Model", placeholder="Enter custom model name...", visible=False)
+								custom_model_input = gr.Textbox(label="自定义模型", placeholder="输入自定义模型名称...", visible=False)
 							with gr.Column(scale=1):
-								custom_embedding_model_input = gr.Textbox(label="Custom Embedding Model", placeholder="Enter custom embedding model name...", visible=False)
+								custom_embedding_model_input = gr.Textbox(label="自定义嵌入模型", placeholder="输入自定义嵌入模型名称...", visible=False)
 
 						def toggle_custom_model_inputs(ie_value, et_value, ea_value, lp_value):
 							show_custom_model = any(value == "Other" for value in [ie_value, et_value, lp_value])
@@ -858,18 +891,18 @@ def build_interface(warning: str = None):
 						ea_dropdown.change(fn=toggle_custom_model_inputs, inputs=[ie_dropdown, et_dropdown, ea_dropdown, lp_dropdown], outputs=[custom_model_input, custom_embedding_model_input])
 						lp_dropdown.change(fn=toggle_custom_model_inputs, inputs=[ie_dropdown, et_dropdown, ea_dropdown, lp_dropdown], outputs=[custom_model_input, custom_embedding_model_input])
 
-						run_all_button = gr.Button("RUN PIPELINE", variant="primary", elem_classes=["run-btn"])
+						run_all_button = gr.Button("运行管线", variant="primary", elem_classes=["run-btn"])
 
 				with gr.Row():
 					metrics_table = gr.Markdown(value=get_metrics_box(), elem_classes=["metric-label"])
 
 				with gr.Row():
 					with gr.Column(scale=1):
-						results_box = gr.Code(label="Results", language="json", interactive=False, show_line_numbers=False, elem_id="resizable-results")
+						results_box = gr.Code(label="结果", language="json", interactive=False, show_line_numbers=False, elem_id="resizable-results")
 					with gr.Column(scale=2):
 						graph_output = gr.HTML(
-							label="Entity Relationship Graph",
-							value='<div style="text-align: center; padding: 40px; color: #3a6b3a; border: 1px dashed #1a3a1a; border-radius: 8px;"><p>AWAITING INPUT</p><p style="font-size: 0.8em; color: #2a4a2a;">Click RUN PIPELINE to generate a visualization</p></div>',
+							label="实体关系图谱",
+							value='<div style="text-align: center; padding: 40px; color: #3a6b3a; border: 1px dashed #1a3a1a; border-radius: 8px;"><p>等待输入</p><p style="font-size: 0.8em; color: #2a4a2a;">点击「运行管线」生成可视化图谱</p></div>',
 						)
 
 				def update_model_choices(provider):
@@ -908,7 +941,7 @@ def build_interface(warning: str = None):
 		gr.HTML("""
 			<div style="text-align: center; padding: 16px 0; border-top: 1px solid #1a3a1a; margin-top: 16px;">
 				<span style="color: #2a4a2a; font-size: 0.75em; letter-spacing: 2px;">
-					CSKG4APT // CYBERSECURITY KNOWLEDGE GRAPH FOR ADVANCED PERSISTENT THREAT ANALYSIS
+					CSKG4APT // 面向高级持续性威胁分析的网络安全知识图谱
 				</span>
 			</div>
 		""")

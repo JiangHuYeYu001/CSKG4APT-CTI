@@ -14,6 +14,8 @@ from .schemas.cskg4apt_ontology import (
 	CSKGRelation,
 	EntityType,
 	RelationType,
+	validate_entity_name,
+	validate_relation_types,
 )
 from .utils.path_utils import resolve_path
 
@@ -104,6 +106,14 @@ class CSKG4APTExtractor:
 					confidence=entity_data.get("confidence", 1.0),
 					attributes=entity_data.get("attributes"),
 				)
+				# Skip entities rejected by subtype validation (confidence set to 0)
+				if entity.confidence <= 0.0:
+					logger.info(
+						"Filtered abstract entity: '%s' (type=%s)",
+						entity.name,
+						entity.type.value,
+					)
+					continue
 				# Dedup by (type, id)
 				entity_key = (entity.type, entity.id)
 				if entity_key not in self.entity_id_map:
@@ -150,6 +160,28 @@ class CSKG4APTExtractor:
 					derivation_source=relation_data.get("derivation_source", "N/A"),
 					confidence=relation_data.get("confidence", 1.0),
 				)
+
+				# Validate relation type constraints
+				source_entity = self.extracted_entities.get(source_id)
+				target_entity = self.extracted_entities.get(target_id)
+				if source_entity and target_entity:
+					if not validate_relation_types(
+						relation.relation_type,
+						source_entity.type,
+						target_entity.type,
+					):
+						logger.warning(
+							"Relation '%s' (%s -> %s) violates type constraints: "
+							"%s -[%s]-> %s not allowed",
+							relation.relation_type.value,
+							source_id,
+							target_id,
+							source_entity.type.value,
+							relation.relation_type.value,
+							target_entity.type.value,
+						)
+						continue
+
 				relations.append(relation)
 			except (ValidationError, Exception) as e:
 				logger.warning(f"Relation validation failed: {e}")
@@ -187,21 +219,26 @@ class CSKG4APTExtractor:
 
 	def _inline_entity_prompt(self, text: str) -> str:
 		"""Fallback inline entity extraction prompt."""
-		return f"""You are a cybersecurity threat intelligence analyst. Extract all entities from the following CTI text according to the CSKG4APT ontology.
+		return f"""You are a cybersecurity threat intelligence analyst. Extract all CONCRETE, NAMED entities from the following CTI text according to the CSKG4APT ontology.
 
-12 Entity Types:
-1. Attacker: APT groups, threat actors (e.g., APT28, Lazarus, Wizard Spider)
-2. Infrastructure: C2 servers, malicious domains, IP addresses, botnets
-3. Malware: Malicious software, backdoors, trojans, worms (e.g., Zebrocy, SUNBURST)
-4. Vulnerability: CVE identifiers (e.g., CVE-2017-0143)
-5. Assets: Attacked systems/applications (e.g., Windows SMB, Exchange Server)
-6. Target: Attack targets - sectors, regions (e.g., "government", "financial sector")
-7. Event: Specific attack campaigns or incidents
-8. Behavior: Tactics, techniques, procedures / TTPs (e.g., "initial access", "privilege escalation")
-9. Time: Temporal information (e.g., "May 2023", "since 2015")
-10. Tool: Legitimate tools abused (e.g., Mimikatz, PsExec, PowerShell)
-11. Credential: Credentials (usernames, passwords, tokens)
-12. Indicator: IOCs - URL hashes, emails, Yara rules
+12 Entity Types (only extract specific, named instances — NEVER extract abstract descriptions):
+
+1. Attacker: Named APT groups, cybercrime gangs, hacktivists (e.g., APT28, Lazarus, FIN7). NOT "the attacker" or "threat actors".
+2. Infrastructure: Attacker-controlled C2 servers, malicious domains, IPs, botnets (e.g., evil-domain.com, 45.33.32.156). NOT "the infrastructure".
+3. Malware: Purpose-built malicious software (e.g., Zebrocy, SUNBURST, Emotet, WannaCry). NOT "the malware" or "malicious activity".
+4. Vulnerability: Named vulnerabilities with CVE IDs or well-known names (e.g., CVE-2017-0143, Log4Shell). NOT "the vulnerability" or "a vulnerability".
+5. Assets: Specific victim-side systems/applications/platforms (e.g., Windows SMB, Exchange Server, Apache Struts, VMware ESXi). NOT "the system" or "the server".
+6. Target: Named sectors, regions, organizations being attacked (e.g., "government", "financial sector", "United States"). NOT "the target" or "the victim".
+7. Event: Named attack campaigns or incidents (e.g., Operation ShadowHammer, SolarWinds attack). NOT "the event" or "the incident".
+8. Behavior: Specific TTPs mapped to MITRE ATT&CK (e.g., "spear phishing", "credential dumping", "lateral movement", T1059). NOT "the behavior" or "attack behavior".
+9. Time: Specific temporal information (e.g., "May 2023", "since 2015", "Q1 2024"). Must contain actual date/year.
+10. Tool: Named legitimate tools abused by attackers (e.g., Mimikatz, PsExec, PowerShell, Cobalt Strike framework). NOT "the tool" or "various tools".
+11. Credential: Specific credential types involved (e.g., stolen SSH keys, NTLM hashes, admin passwords). NOT "the credential" or "credential access" (that's a Behavior).
+12. Indicator: Specific IOCs (e.g., MD5/SHA hashes, malicious URLs, YARA rules, file paths). NOT "the indicator" or "indicators of compromise".
+
+Key distinctions:
+- Malware vs Tool: Purpose-built for attacks → Malware. Legitimate software abused → Tool.
+- Infrastructure vs Assets: Attacker-controlled → Infrastructure. Victim-side → Assets.
 
 Rules:
 - Only extract entities of the 12 types above
@@ -222,14 +259,52 @@ Return JSON format:
 		)
 		return f"""You are a cybersecurity threat intelligence analyst. Extract relations between the given entities from the CTI text.
 
-7 Relation Types and Constraints:
-1. has: Attacker -[has]-> Malware (attacker possesses/developed malware)
-2. uses: Attacker -[uses]-> Tool (attacker uses a tool)
-3. exploit: Malware -[exploit]-> Vulnerability (malware exploits vulnerability)
-4. exist: Vulnerability -[exist]-> Assets (vulnerability exists in asset)
-5. target: Attacker -[target]-> Target (attacker targets sector/region)
-6. medium: Attacker -[medium]-> Infrastructure (attacker uses infrastructure)
-7. behavior: Event -[behavior]-> Behavior (event involves tactic/technique)
+7 Relation Types and ALL Valid Constraints (STRICTLY follow these source→target type pairs):
+
+1. has:
+   - Attacker → Malware (attacker possesses/developed malware)
+   - Attacker → Credential (attacker holds stolen credentials)
+   - Attacker → Indicator (attacker associated with IOCs)
+   - Malware → Indicator (malware has IOC signatures)
+   - Malware → Behavior (malware exhibits TTP characteristics)
+   - Infrastructure → Indicator (infrastructure associated with IOCs)
+   - Event → Time (event has timestamp)
+   - Event → Indicator (event associated with IOCs)
+
+2. uses:
+   - Attacker → Tool (attacker uses a legitimate tool)
+   - Attacker → Credential (attacker uses stolen credentials)
+   - Malware → Tool (malware invokes legitimate tools)
+   - Malware → Infrastructure (malware connects to C2)
+   - Event → Tool (event involves tools)
+
+3. exploit:
+   - Malware → Vulnerability (malware exploits vulnerability)
+   - Attacker → Vulnerability (attacker exploits vulnerability)
+   - Tool → Vulnerability (tool exploits vulnerability)
+
+4. exist:
+   - Vulnerability → Assets (vulnerability exists in system)
+   - Malware → Assets (malware present in asset)
+   - Indicator → Assets (IOC found in asset)
+
+5. target:
+   - Attacker → Target (attacker targets sector/region)
+   - Malware → Target (malware targets specific victims)
+   - Event → Target (event targets victims)
+   - Attacker → Assets (attacker targets specific systems)
+   - Malware → Assets (malware targets specific platforms)
+
+6. medium:
+   - Attacker → Infrastructure (attacker uses infrastructure)
+   - Malware → Infrastructure (malware communicates via infrastructure)
+   - Event → Infrastructure (event involves infrastructure)
+
+7. behavior:
+   - Event → Behavior (event involves TTPs)
+   - Attacker → Behavior (attacker employs TTPs)
+   - Malware → Behavior (malware exhibits behaviors)
+   - Tool → Behavior (tool associated with behaviors)
 
 Extracted Entities:
 {entities_str}
@@ -237,7 +312,7 @@ Extracted Entities:
 Rules:
 - Only create relations between entities from the list above
 - Only use the 7 defined relation types
-- Follow source->target type constraints
+- STRICTLY follow source→target type constraints — if a pair is not listed, DO NOT create it
 - derivation_source must contain context for both source and target entities
 - Do not fabricate relations
 
